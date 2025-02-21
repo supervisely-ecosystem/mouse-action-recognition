@@ -184,7 +184,7 @@ def get_args():
                         help='Perform evaluation only, the log name')
     parser.add_argument('--dist_eval', action='store_true', default=False,
                         help='Enabling distributed evaluation')
-    parser.add_argument('--num_workers', default=10, type=int)
+    parser.add_argument('--num_workers', default=4, type=int)
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
@@ -208,7 +208,8 @@ def get_args():
             from deepspeed import DeepSpeedConfig
             parser = deepspeed.add_config_arguments(parser)
             ds_init = deepspeed.initialize
-        except:
+        except Exception as e:
+            print(e)
             print("Please 'pip install deepspeed'")
             exit(0)
     else:

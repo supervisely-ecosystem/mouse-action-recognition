@@ -163,7 +163,7 @@ def validation_one_epoch(data_loader, model, device):
             output = model(videos)
             loss = criterion(output, target)
 
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
+        acc1, acc5 = accuracy(output, target, topk=(1, 1))
 
         batch_size = videos.shape[0]
         metric_logger.update(loss=loss.item())

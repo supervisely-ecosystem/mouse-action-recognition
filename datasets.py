@@ -75,6 +75,7 @@ def build_dataset(is_train, test_mode, args):
         if is_train is True:
             mode = 'train'
             anno_path = os.path.join(args.data_path, 'train.csv')
+            assert os.path.exists(anno_path)
         elif test_mode is True:
             mode = 'test'
             anno_path = os.path.join(args.data_path, 'val.csv') 
@@ -195,7 +196,8 @@ def build_dataset(is_train, test_mode, args):
         nb_classes = 51
     else:
         raise NotImplementedError()
-    assert nb_classes == args.nb_classes
+    # assert nb_classes == args.nb_classes
+    nb_classes = args.nb_classes
     print("Number of the class = %d" % args.nb_classes)
 
     return dataset, nb_classes

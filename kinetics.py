@@ -50,7 +50,10 @@ class VideoClsDataset(Dataset):
         self.dataset_samples = list(cleaned.values[:, 0])
         if self.data_path is not None:
             self.dataset_samples = [os.path.join(self.data_path, p) for p in self.dataset_samples]
+        assert all([os.path.exists(p) for p in self.dataset_samples]), "Some video files are missing"
         self.label_array = list(cleaned.values[:, 1])
+        # print("LABEL ARRAY:")
+        # print(self.label_array)
 
         if (mode == 'train'):
             pass

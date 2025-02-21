@@ -10,3 +10,5 @@
 - [decord](https://github.com/dmlc/decord)
 - [einops](https://github.com/arogozhnikov/einops)
 - [scipy](https://github.com/scipy/scipy)
+
+pip install "numpy<1.20" timm==0.4.12 deepspeed==0.5.8 TensorboardX decord einops scipy
