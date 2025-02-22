@@ -219,6 +219,10 @@ def get_args():
 
 
 def main(args, ds_init):
+    # import shutil
+    # if os.path.exists(args.output_dir):
+    #     shutil.rmtree(args.output_dir)
+
     utils.init_distributed_mode(args)
 
     if ds_init is not None:
@@ -415,8 +419,8 @@ def main(args, ds_init):
     model_without_ddp = model
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    print("Model = %s" % str(model_without_ddp))
-    print('number of params:', n_parameters)
+    # print("Model = %s" % str(model_without_ddp))
+    print('number of params:', n_parameters // 1e6, 'M')
 
     total_batch_size = args.batch_size * args.update_freq * utils.get_world_size()
     num_training_steps_per_epoch = len(dataset_train) // total_batch_size

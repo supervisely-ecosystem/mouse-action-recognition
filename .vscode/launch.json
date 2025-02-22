@@ -34,20 +34,22 @@
             "--opt", "adamw",
             "--opt_betas", "0.9", "0.999",
             "--weight_decay", "0.001",
-            "--batch_size", "5",
-            "--update_freq", "2",
+            "--batch_size", "8",
+            "--update_freq", "1",
             "--num_sample", "2",
             "--save_ckpt_freq", "5",
             "--no_save_best_ckpt",
             "--num_frames", "16",
             "--sampling_rate", "4",
-            "--lr", "5e-4",
+            "--lr", "1e-3",
             "--epochs", "100",
             "--dist_eval",
             "--test_num_segment", "5",
-            "--test_num_crop", "3"
+            "--test_num_crop", "3",
+            "--enable_deepspeed",
             ],
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "justMyCode": false,
         }
     ]
 }

@@ -25,5 +25,4 @@ python run_class_finetuning.py \
     --num_frames 16 --sampling_rate 4 \
     --lr 5e-4 --epochs 100 \
     --dist_eval --test_num_segment 5 --test_num_crop 3 \
-    # --enable_deepspeed
-
+    --enable_deepspeed
