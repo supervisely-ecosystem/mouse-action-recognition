@@ -219,9 +219,6 @@ def get_args():
 
 
 def main(args, ds_init):
-    # import shutil
-    # if os.path.exists(args.output_dir):
-    #     shutil.rmtree(args.output_dir)
 
     utils.init_distributed_mode(args)
 
@@ -587,6 +584,8 @@ def main(args, ds_init):
 
 if __name__ == '__main__':
     opts, ds_init = get_args()
+    if os.path.exists(opts.output_dir):
+        opts.output_dir = opts.output_dir + "_" + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     if opts.output_dir:
         Path(opts.output_dir).mkdir(parents=True, exist_ok=True)
     main(opts, ds_init)

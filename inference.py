@@ -108,7 +108,7 @@ def main(args):
         test_stats = final_test(data_loader_test, model, device, preds_file)
     if global_rank == 0:
         print("Start merging results...")
-        final_top1 ,final_top5 = merge(args.output_dir, num_tasks)
+        final_top1, final_top5 = merge(args.output_dir, num_tasks)
         print(f"Accuracy of the network on the {len(dataset_test)} test videos: Top-1: {final_top1:.2f}%, Top-5: {final_top5:.2f}%")
         log_stats = {'Final top-1': final_top1, 'Final Top-5': final_top5}
         if args.output_dir and utils.is_main_process():
