@@ -95,5 +95,12 @@ def extract_clip(video_path, start, end, width, height, fps, output_clip):
         "-an",  # Remove audio to speed up
         str(output_clip)
     ]
-    # Using subprocess; output is suppressed.
-    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+    try:
+        # Run the command and capture output
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    except subprocess.CalledProcessError as e:
+        # If ffmpeg returns non-zero exit code, print the error
+        print(f"FFmpeg error: {e.stderr.decode('utf-8')}")
+        print(f"start frame: {start}, end frame: {end}")
+        raise  # Re-raise the exception after printing the error

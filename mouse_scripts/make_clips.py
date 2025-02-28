@@ -28,6 +28,9 @@ def merge_overlapping_ranges(ranges: list) -> list:
     ranges = merged
     return ranges
 
+def filter_ranges_outside_video(ranges: list, total_frames: int) -> list:
+    return [[start, end] for start, end in ranges if 0 <= start < total_frames and 0 <= end < total_frames]
+
 def split_range(start: int, end: int, fps: float, total_frames: int, max_clip_duration: float = 5) -> list:
     """
     Returns a list of segments for the given range.
@@ -85,6 +88,7 @@ def make_pos_clips_for_tag(
         ann = json.load(f)
     
     ranges = get_frame_ranges(ann, tag=tag)
+    ranges = filter_ranges_outside_video(ranges, total_frames)
     ranges = merge_overlapping_ranges(ranges)
 
     info = []
@@ -122,12 +126,13 @@ def make_positives(input_dir: str, output_dir: str, min_size):
     LABELS = {"Self-Grooming": 1, "Head/Body TWITCH": 2}
 
     infos = []
-    for video_file in tqdm(paths):
+    for i, video_file in enumerate(tqdm(paths)):
         ann_file = video_file.parent.parent / f"ann/{video_file.name}.json"
         assert ann_file.exists(), f"Annotation file not found: {ann_file}"
         for tag, label in LABELS.items():
             infos += make_pos_clips_for_tag(video_file, ann_file, output_dir, min_size, tag, label)
             # validate_decord(infos[-1][1])
+        print(f"{i+1}/{len(paths)}")
 
     return infos
 
@@ -202,11 +207,12 @@ def make_neg_clips_for_tag(
 def make_negatives(pos_df: pd.DataFrame, output_dir: str, min_size, target_length):
     grouped = pos_df.groupby("orig_file")
     infos = []
-    for video_file, group_df in tqdm(grouped):
+    for i, (video_file, group_df) in enumerate(tqdm(grouped)):
         skip_ranges = group_df[["start", "end"]].values.tolist()
         infos += make_neg_clips_for_tag(
             video_file, output_dir, min_size, target_length=target_length, skip_ranges=skip_ranges
         )
+        print(f"{i+1}/{len(grouped)}")
 
     return infos
 
