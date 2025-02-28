@@ -119,7 +119,6 @@ def make_positives(input_dir: str, output_dir: str, min_size):
         assert ann_file.exists(), f"Annotation file not found: {ann_file}"
         for tag, label in LABELS.items():
             infos += make_pos_clips_for_tag(video_file, ann_file, output_dir, min_size, tag, label)
-        break
 
     return infos
 
@@ -199,7 +198,6 @@ def make_negatives(pos_df: pd.DataFrame, output_dir: str, min_size, target_lengt
         infos += make_neg_clips_for_tag(
             video_file, output_dir, min_size, target_length=target_length, skip_ranges=skip_ranges
         )
-        break
 
     return infos
 
