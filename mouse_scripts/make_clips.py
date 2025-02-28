@@ -90,7 +90,8 @@ def make_pos_clips_for_tag(video_file: str, ann_file: str, output_dir: str, targ
         for seg in segments:
             seg_start, seg_end = seg
             clip_name = f"{video_name}_clip_{clip_counter:03d}.mp4"
-            output_clip = out_dir / tag / clip_name
+            tag_name = tag.replace("/", "-").replace(" ", "_")
+            output_clip = out_dir / tag_name / clip_name
             output_clip.parent.mkdir(parents=True, exist_ok=True)
             width, height = V.get_video_dimensions(video_path)
             new_width, new_height = V.calculate_resize(width, height, target_short_edge=target_short_edge)
