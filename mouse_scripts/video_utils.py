@@ -83,14 +83,15 @@ def extract_clip(video_path, start, end, width, height, fps, output_clip):
     cmd = [
         "ffmpeg",
         "-y",  # Overwrite output file if exists.
-        "-i", str(video_path),
         "-ss", str(start_time),
+        "-i", str(video_path),
         "-t", str(duration),
         "-vf", f"scale={width}:{height}",
         "-c:v", "libx264",  # Use H.264 codec
-        "-preset", "medium",  # Balance between speed and quality
-        "-crf", "18",      # Quality setting (lower = better quality)
+        "-preset", "fast",  # Balance between speed and quality
+        "-crf", "20",  # Quality setting (lower = better quality)
         "-pix_fmt", "yuv420p",
+        "-force_key_frames", "expr:gte(t,0)",  # Force keyframe at start
         "-an",  # Remove audio to speed up
         str(output_clip)
     ]
