@@ -11,9 +11,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "cwd": "${fileDirname}",
-            // "env": {
-            //     "PYTHONPATH": "/root/supervisely"
-            // }
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "/root/supervisely"
+            }
         },
         {
             "name": "Train Script",
@@ -23,33 +24,47 @@
             "args": [
             "--model", "vit_small_patch16_224",
             "--data_set", "Kinetics-400",
-            "--nb_classes", "2",
-            "--data_path", "data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre",
-            "--data_root", "data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre",
+            "--nb_classes", "3",
+            "--data_path", "data/mouse/",
+            "--data_root", "data/mouse/",
             "--finetune", "OUTPUT/mvd_s_from_b_ckpt_399.pth",
-            "--log_dir", "OUTPUT/train_mouse",
-            "--output_dir", "OUTPUT/train_mouse",
+            "--log_dir", "OUTPUT/MP_TRAIN_3",
+            "--output_dir", "OUTPUT/MP_TRAIN_3",
             "--input_size", "224",
             "--short_side_size", "224",
             "--opt", "adamw",
             "--opt_betas", "0.9", "0.999",
             "--weight_decay", "0.001",
-            "--batch_size", "8",
+            "--batch_size", "12",
             "--update_freq", "1",
             "--num_sample", "2",
             "--save_ckpt_freq", "5",
-            "--no_save_best_ckpt",
+            // "--no_save_best_ckpt",
             "--num_frames", "16",
-            "--sampling_rate", "4",
-            "--lr", "1e-3",
+            "--sampling_rate", "2",
+            "--reprob", "0.0",
+            "--lr", "5e-4",
             "--epochs", "100",
+            "--warmup_epochs", "3",
             "--dist_eval",
+            "--num_workers", "8",
             "--test_num_segment", "5",
             "--test_num_crop", "3",
             "--enable_deepspeed",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
-        }
+        },
+        {
+            "name": "Inference",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "inference.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "/root/supervisely"
+            }
+        },
     ]
 }
