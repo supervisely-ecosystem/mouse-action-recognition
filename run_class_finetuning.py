@@ -23,6 +23,7 @@ from utils import multiple_samples_collate
 import utils
 import modeling_finetune
 
+print("V1.0")
 
 def get_args():
     parser = argparse.ArgumentParser('MVD fine-tuning and evaluation script for video classification', add_help=False)
@@ -184,7 +185,7 @@ def get_args():
                         help='Perform evaluation only, the log name')
     parser.add_argument('--dist_eval', action='store_true', default=False,
                         help='Enabling distributed evaluation')
-    parser.add_argument('--num_workers', default=4, type=int)
+    parser.add_argument('--num_workers', default=8, type=int)
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
@@ -374,6 +375,8 @@ def main(args, ds_init):
 
         # interpolate position embedding
         if 'pos_embed' in checkpoint_model:
+            _num_frames = args.num_frames
+            args.num_frames = 16
             pos_embed_checkpoint = checkpoint_model['pos_embed']
             embedding_size = pos_embed_checkpoint.shape[-1] # channel dim
             num_patches = model.patch_embed.num_patches # 
@@ -401,7 +404,8 @@ def main(args, ds_init):
                 checkpoint_model['pos_embed'] = new_pos_embed
 
         utils.load_state_dict(model, checkpoint_model, prefix=args.model_prefix)
-
+    
+    args.num_frames = _num_frames
     model.to(device)
 
     model_ema = None
