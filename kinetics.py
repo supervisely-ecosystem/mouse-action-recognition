@@ -111,6 +111,21 @@ class VideoClsDataset(Dataset):
                     frame_list.append(new_frames)
                     label_list.append(label)
                     index_list.append(index)
+                    
+                    ### DEBUG
+                    
+                    # from my_utils import save_frames_as_video
+                    # save_frames_as_video(new_frames, f"tmp/augmented_frames_{_}_{index}.mp4", fps=10)
+
+                    # # torch.Size([3, 16, 224, 224])
+                    # # save the augmented frames with torchvision.utils.save_image
+                    # from torchvision.utils import save_image
+                    # tmp = frame_list[_].permute(1, 0, 2, 3)
+                    # # normalize to min 0 and max 1
+                    # tmp = (tmp - tmp.min()) / (tmp.max() - tmp.min())
+                    # save_image(tmp, f"tmp/augmented_frames_{_}_{index}.png")
+                    # ###
+
                 return frame_list, label_list, index_list, {}
             else:
                 buffer = self._aug_frame(buffer, args)
@@ -126,6 +141,17 @@ class VideoClsDataset(Dataset):
                     sample = self.dataset_samples[index]
                     buffer = self.loadvideo_decord(sample)
             buffer = self.data_transform(buffer)
+
+            # # torch.Size([3, 16, 224, 224])
+            # # save the augmented frames with torchvision.utils.save_image
+            # _ = 0
+            # frame_list = [buffer]
+            # from torchvision.utils import save_image
+            # tmp = frame_list[_].permute(1, 0, 2, 3)
+            # # normalize to min 0 and max 1
+            # tmp = (tmp - tmp.min()) / (tmp.max() - tmp.min())
+            # save_image(tmp, f"tmp/augmented_frames_{_}_{index}.png")
+            # ###
             return buffer, self.label_array[index], sample.split("/")[-1].split(".")[0]
 
         elif self.mode == 'test':
@@ -194,7 +220,7 @@ class VideoClsDataset(Dataset):
         buffer = buffer.permute(3, 0, 1, 2)
         # Perform data augmentation.
         scl, asp = (
-            [0.08, 1.0],
+            [0.7, 1.0],
             [0.75, 1.3333],
         )
 
@@ -339,6 +365,7 @@ def spatial_sampling(
                 if motion_shift
                 else video_transforms.random_resized_crop
             )
+            # random_resized_crop is used
             frames = transform_func(
                 images=frames,
                 target_height=crop_size,

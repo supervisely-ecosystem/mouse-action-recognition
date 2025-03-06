@@ -645,7 +645,7 @@ def create_random_augment(
             img_size_min = min(img_size)
         else:
             img_size_min = img_size
-        aa_params = {"translate_const": int(img_size_min * 0.45)}
+        aa_params = {"translate_const": int(img_size_min * 0.10)}
         if interpolation and interpolation != "random":
             aa_params["interpolation"] = _pil_interp(interpolation)
         if auto_augment.startswith("rand"):
