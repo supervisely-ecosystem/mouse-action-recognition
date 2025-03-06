@@ -23,10 +23,9 @@ RUN ln -s /usr/bin/python3 /usr/bin/python \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu118/torch_stable.html \
-    # setuptools==69.5.1 \
-    torch==1.11.0 \
-    torchvision==0.12.0 \
+RUN pip install --no-cache-dir \
+    torch==1.11.0+cu115 \
+    torchvision==0.12.0+cu115 \
     deepspeed \
     "numpy<1.20" \
     timm==0.4.12 \
@@ -36,3 +35,4 @@ RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/wh
     scipy \
     opencv-python \
     pandas==1.1.3 \
+    -f https://download.pytorch.org/whl/torch_stable.html
