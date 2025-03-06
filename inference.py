@@ -10,6 +10,7 @@ from timm.models import create_model
 from datasets import build_dataset
 from engine_for_finetuning import train_one_epoch, validation_one_epoch, final_test, merge
 import utils
+import modeling_finetune  # register the new model
 
 
 def main(args):
@@ -66,7 +67,7 @@ def main(args):
     if dataset_val is not None:
         data_loader_val = torch.utils.data.DataLoader(
             dataset_val, sampler=sampler_val,
-            batch_size=int(1.5 * args.batch_size),
+            batch_size=int(50),
             num_workers=args.num_workers,
             pin_memory=args.pin_mem,
             drop_last=False
@@ -103,17 +104,22 @@ def main(args):
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters // 1e6, 'M')
 
+
+    if data_loader_val is not None:
+        test_stats = validation_one_epoch(data_loader_val, model, device)
+        print(f"Accuracy of the network on the {len(dataset_val)} val videos: {test_stats['acc1']:.1f}%")
+
     if not args.merge_test:
         preds_file = os.path.join(args.output_dir, str(global_rank) + '.txt')
         test_stats = final_test(data_loader_test, model, device, preds_file)
-    if global_rank == 0:
-        print("Start merging results...")
-        final_top1, final_top5 = merge(args.output_dir, num_tasks)
-        print(f"Accuracy of the network on the {len(dataset_test)} test videos: Top-1: {final_top1:.2f}%, Top-5: {final_top5:.2f}%")
-        log_stats = {'Final top-1': final_top1, 'Final Top-5': final_top5}
-        if args.output_dir and utils.is_main_process():
-            with open(os.path.join(args.output_dir, args.eval_log_name + ".txt"), mode="a", encoding="utf-8") as f:
-                f.write(json.dumps(log_stats) + "\n")
+    # if global_rank == 0:
+    #     print("Start merging results...")
+    #     final_top1, final_top5 = merge(args.output_dir, num_tasks)
+    #     print(f"Accuracy of the network on the {len(dataset_test)} test videos: Top-1: {final_top1:.2f}%, Top-5: {final_top5:.2f}%")
+    #     log_stats = {'Final top-1': final_top1, 'Final Top-5': final_top5}
+    #     if args.output_dir and utils.is_main_process():
+    #         with open(os.path.join(args.output_dir, args.eval_log_name + ".txt"), mode="a", encoding="utf-8") as f:
+    #             f.write(json.dumps(log_stats) + "\n")
         
 
 def get_parser():
@@ -328,10 +334,10 @@ def parse_config(config_text):
     return config_dict
 
 if __name__ == '__main__':
-    output_dir = Path("OUTPUT/train_mouse")
-    checkpoint = "OUTPUT/train_mouse/checkpoint-39/mp_rank_00_model_states.pt"
-    if not output_dir.exists():
-        raise ValueError(f"Output directory {output_dir} does not exist.")
+    checkpoint = "/root/volume/MP_TRAIN_3_2025-03-01_11-18-45/checkpoint-9/mp_rank_00_model_states.pt"
+    checkpoint = Path(checkpoint)
+    assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
+    output_dir = checkpoint.parent.parent
     
     config_file = output_dir / "config.txt"
     with open(config_file, 'r') as f:
