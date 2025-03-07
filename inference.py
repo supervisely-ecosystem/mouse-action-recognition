@@ -1,26 +1,24 @@
 import argparse
 import torch
 import torch.backends.cudnn as cudnn
+from torch.utils.data import DataLoader
 import json
 import os
 from pathlib import Path
 
 from timm.models import create_model
+from tqdm import tqdm
 
 from datasets import build_dataset
 from engine_for_finetuning import train_one_epoch, validation_one_epoch, final_test, merge
+from video_sliding_window import VideoSlidingWindow
 import utils
 import modeling_finetune  # register the new model
 
 
-def main(args):
-
-    print(args)
-
+def build_model(args):
     device = torch.device(args.device)
-
     cudnn.benchmark = True
-
     model = create_model(
         args.model,
         pretrained=False,
@@ -44,48 +42,6 @@ def main(args):
     args.window_size = (args.num_frames // 2, args.input_size // patch_size[0], args.input_size // patch_size[1])
     args.patch_size = patch_size
 
-    # dataset_train, args.nb_classes = build_dataset(is_train=True, test_mode=False, args=args)
-    dataset_val, _ = build_dataset(is_train=False, test_mode=False, args=args)
-    dataset_test, _ = build_dataset(is_train=False, test_mode=True, args=args)
-
-    num_tasks = utils.get_world_size()
-    global_rank = utils.get_rank()
-    
-    if args.dist_eval:
-        if len(dataset_val) % num_tasks != 0:
-            print('Warning: Enabling distributed evaluation with an eval dataset not divisible by process number. '
-                    'This will slightly alter validation results as extra duplicate entries are added to achieve '
-                    'equal num of samples per-process.')
-        sampler_val = torch.utils.data.DistributedSampler(
-            dataset_val, num_replicas=num_tasks, rank=global_rank, shuffle=False)
-        sampler_test = torch.utils.data.DistributedSampler(
-            dataset_test, num_replicas=num_tasks, rank=global_rank, shuffle=False)
-    else:
-        sampler_val = torch.utils.data.SequentialSampler(dataset_val)
-        sampler_test = torch.utils.data.SequentialSampler(dataset_test)
-
-    if dataset_val is not None:
-        data_loader_val = torch.utils.data.DataLoader(
-            dataset_val, sampler=sampler_val,
-            batch_size=int(50),
-            num_workers=args.num_workers,
-            pin_memory=args.pin_mem,
-            drop_last=False
-        )
-    else:
-        data_loader_val = None
-
-    if dataset_test is not None:
-        data_loader_test = torch.utils.data.DataLoader(
-            dataset_test, sampler=sampler_test,
-            batch_size=args.batch_size,
-            num_workers=args.num_workers,
-            pin_memory=args.pin_mem,
-            drop_last=False
-        )
-    else:
-        data_loader_test = None
-
     print("Loading ckpt from %s" % args.finetune)
     checkpoint = torch.load(args.finetune, map_location='cpu')
     checkpoint_model = None
@@ -104,23 +60,8 @@ def main(args):
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters // 1e6, 'M')
 
+    return model
 
-    if data_loader_val is not None:
-        test_stats = validation_one_epoch(data_loader_val, model, device)
-        print(f"Accuracy of the network on the {len(dataset_val)} val videos: {test_stats['acc1']:.1f}%")
-
-    if not args.merge_test:
-        preds_file = os.path.join(args.output_dir, str(global_rank) + '.txt')
-        test_stats = final_test(data_loader_test, model, device, preds_file)
-    # if global_rank == 0:
-    #     print("Start merging results...")
-    #     final_top1, final_top5 = merge(args.output_dir, num_tasks)
-    #     print(f"Accuracy of the network on the {len(dataset_test)} test videos: Top-1: {final_top1:.2f}%, Top-5: {final_top5:.2f}%")
-    #     log_stats = {'Final top-1': final_top1, 'Final Top-5': final_top5}
-    #     if args.output_dir and utils.is_main_process():
-    #         with open(os.path.join(args.output_dir, args.eval_log_name + ".txt"), mode="a", encoding="utf-8") as f:
-    #             f.write(json.dumps(log_stats) + "\n")
-        
 
 def get_parser():
     parser = argparse.ArgumentParser('MVD fine-tuning and evaluation script for video classification', add_help=False)
@@ -335,8 +276,10 @@ def parse_config(config_text):
 
 if __name__ == '__main__':
     checkpoint = "/root/volume/MP_TRAIN_3_2025-03-01_11-18-45/checkpoint-9/mp_rank_00_model_states.pt"
+    video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
     checkpoint = Path(checkpoint)
     assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
+    assert Path(video_path).exists(), f"Video {video_path} does not exist."
     output_dir = checkpoint.parent.parent
     
     config_file = output_dir / "config.txt"
@@ -360,4 +303,91 @@ if __name__ == '__main__':
     opts = parser.parse_args(args_list)
     opts.finetune = checkpoint
     opts.eval = True
-    main(opts)
+    print(opts)
+
+    # Build the model
+    model = build_model(opts)
+    
+    # Read the video
+    dataset = VideoSlidingWindow(
+        video_path,
+        num_frames=opts.num_frames,
+        frame_sample_rate=opts.sampling_rate,
+        input_size=opts.input_size,
+        stride=5,
+    )
+
+    data_loader = DataLoader(
+        dataset,
+        batch_size=16,
+        shuffle=False,
+        num_workers=0,
+    )
+
+    # Perform evaluation
+    device = opts.device
+    num_frames = opts.num_frames
+    frame_sample_rate = opts.sampling_rate
+    stride = 5
+    print(f"Performing evaluation on {video_path}")
+    print(len(dataset))
+    all_probs = []
+    for videos in tqdm(data_loader):
+        videos = videos.to(device, non_blocking=True)
+
+        # compute output
+        with torch.cuda.amp.autocast() and torch.no_grad():
+            output = model(videos)
+
+        prob = torch.softmax(output, dim=1)
+        all_probs.append(prob)
+
+    all_probs = torch.cat(all_probs, dim=0).cpu().numpy()  # (num_windows, num_classes)
+    print(all_probs.shape)
+
+    from matplotlib import pyplot as plt
+    import numpy as np
+
+    num_windows = all_probs.shape[0]
+    num_classes = all_probs.shape[1]
+
+    # Calculate frame timestamps for each window
+    window_centers = [(num_frames * frame_sample_rate) // 2 + i * stride for i in range(num_windows)]
+    
+    # Convert frame indices to seconds (assuming 30fps, adjust if different)
+    fps = dataset.vr.get_avg_fps()
+    time_in_seconds = [frame / fps for frame in window_centers]
+        
+    # Create the visualization
+    plt.figure(figsize=(15, 7))
+    
+    for idx in range(num_classes):
+        plt.plot(time_in_seconds, all_probs[:, idx], linewidth=2, label=f"Class {idx}")
+    
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('Probability')
+    plt.title('Class Probabilities Over Time')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    
+    # Save the visualization
+    vis_path = os.path.join('timeline_visualization.png')
+    plt.savefig(vis_path)
+    print(f"Visualization saved to {vis_path}")
+    
+    # Also save the raw probabilities for further analysis
+    np.save(os.path.join('class_probabilities.npy'), all_probs)
+    
+    # Display additional statistics
+    # Get the most probable class for each window
+    dominant_classes = np.argmax(all_probs, axis=1)
+    class_counts = np.bincount(dominant_classes)
+    top_classes = np.argsort(-class_counts)[:5]
+    print("\nDominant classes in the video:")
+    for cls in top_classes:
+        if class_counts[cls] > 0:
+            percentage = (class_counts[cls] / num_windows) * 100
+            print(f"Class {cls}: {percentage:.2f}% ({class_counts[cls]} windows)")
+
+
