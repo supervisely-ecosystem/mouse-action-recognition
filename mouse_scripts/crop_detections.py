@@ -37,6 +37,34 @@ def get_bbox_area(bbox):
     x2, y2 = bbox[1]
     return (x2 - x1) * (y2 - y1)
 
+def get_maximal_bbox(figures):
+    """
+    Get the maximal bounding box that encompasses all other boxes.
+    Returns a bbox with min x1, min y1, max x2, max y2 from all bboxes.
+    """
+    if not figures:
+        return None
+    
+    # Initialize with the first bbox
+    first_bbox = figures[0]['geometry']['points']['exterior']
+    min_x = first_bbox[0][0]
+    min_y = first_bbox[0][1]
+    max_x = first_bbox[1][0]
+    max_y = first_bbox[1][1]
+    
+    # Find the min/max coordinates across all bboxes
+    for figure in figures:
+        bbox = figure['geometry']['points']['exterior']
+        x1, y1 = bbox[0]
+        x2, y2 = bbox[1]
+        
+        min_x = min(min_x, x1)
+        min_y = min(min_y, y1)
+        max_x = max(max_x, x2)
+        max_y = max(max_y, y2)
+    
+    return min_x, min_y, max_x, max_y
+
 def get_largest_bbox(figures):
     """
     Get the largest bounding box from a list of figures.
@@ -206,22 +234,16 @@ def main():
     subdirs = [d for d in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir, d))]
     subdirs = sorted(subdirs)
 
-    # Process all videos
+    # Analyze all annotations first
     for subdir in subdirs:
         input_subdir = os.path.join(input_dir, subdir)
         annotation_subdir = os.path.join(annotation_dir, subdir)
         output_subdir = os.path.join(output_dir, subdir)
         
-        # Create output subdirectory
-        os.makedirs(output_subdir, exist_ok=True)
-        
         # Get all videos in the subdirectory
         videos = [f for f in os.listdir(input_subdir) if f.lower().endswith('.mp4')]
         videos = sorted(videos)
-        
-        print(f"Processing {len(videos)} videos in subdirectory {subdir}...")
-        
-        # First, analyze all annotations
+                
         print("Analyzing annotations...")
         invalid_annotations = []
         
@@ -244,10 +266,24 @@ def main():
                 for issue in issues:
                     print(f"  - {issue}")
             
-            proceed = input("\nDo you want to proceed with processing these videos? (y/n): ")
-            if proceed.lower() != 'y':
-                print("Skipping this subdirectory.")
-                continue
+    proceed = input("\nDo you want to proceed with processing these videos? (y/n): ")
+    if proceed.lower() != 'y':
+        exit(0)
+        
+    # Process all videos
+    for subdir in subdirs:
+        input_subdir = os.path.join(input_dir, subdir)
+        annotation_subdir = os.path.join(annotation_dir, subdir)
+        output_subdir = os.path.join(output_dir, subdir)
+        
+        # Create output subdirectory
+        os.makedirs(output_subdir, exist_ok=True)
+        
+        # Get all videos in the subdirectory
+        videos = [f for f in os.listdir(input_subdir) if f.lower().endswith('.mp4')]
+        videos = sorted(videos)
+        
+        print(f"Processing {len(videos)} videos in subdirectory {subdir}...")
         
         # Process videos
         with ThreadPoolExecutor(max_workers=min(os.cpu_count(), 4)) as executor:
