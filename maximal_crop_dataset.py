@@ -82,10 +82,14 @@ class MaximalCropDataset(VideoClsDataset):
     def _get_crop_bbox(self, ann_path, min_frame_idx, max_frame_idx):
         with open(ann_path, 'r') as f:
             ann = json.load(f)
-        figures = [fig for frame in ann['frames'][min_frame_idx:max_frame_idx+1] for fig in frame['figures']]
-        x1, y1, x2, y2 = get_maximal_bbox(figures)
-        x1, y1, x2, y2 = get_square_bbox((x1, y1, x2, y2), padding=self.det_bbox_padding)
         w, h = ann["size"]["width"], ann["size"]["height"]
+        figures = [fig for frame in ann['frames'][min_frame_idx:max_frame_idx+1] for fig in frame['figures']]
+        if not figures:
+            print(f"No figures found in {ann_path} (frames {min_frame_idx}-{max_frame_idx})")
+            x1, y1, x2, y2 = 0, 0, w, h
+        else:
+            x1, y1, x2, y2 = get_maximal_bbox(figures)
+            x1, y1, x2, y2 = get_square_bbox((x1, y1, x2, y2), padding=self.det_bbox_padding)
         x1 = max(0, x1)
         y1 = max(0, y1)
         x2 = min(w, x2)
