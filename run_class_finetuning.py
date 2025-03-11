@@ -147,6 +147,7 @@ def get_args():
                         help='dataset path root')
     parser.add_argument('--data_path', default='/path/to/list_kinetics-400', type=str,
                         help='path of dataset file list')
+    parser.add_argument('--det_ann_path', default='/path/to/list_kinetics-400', type=str)
     parser.add_argument('--eval_data_path', default=None, type=str,
                         help='dataset path for evaluation')
     parser.add_argument('--nb_classes', default=400, type=int,
@@ -588,8 +589,7 @@ def main(args, ds_init):
 
 if __name__ == '__main__':
     opts, ds_init = get_args()
-    if os.path.exists(opts.output_dir):
-        opts.output_dir = opts.output_dir + "_" + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    opts.output_dir = opts.output_dir + "_" + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     if opts.output_dir:
-        Path(opts.output_dir).mkdir(parents=True, exist_ok=True)
+        Path(opts.output_dir).mkdir(parents=True, exist_ok=False)
     main(opts, ds_init)

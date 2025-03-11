@@ -55,6 +55,12 @@ class VideoClsDataset(Dataset):
         # print("LABEL ARRAY:")
         # print(self.label_array)
 
+        self._scl, self._asp = (
+            [0.7, 1.0],
+            [0.75, 1.3333],
+        )
+        self.translate_fraction = 0.10
+
         if (mode == 'train'):
             pass
 
@@ -200,6 +206,7 @@ class VideoClsDataset(Dataset):
             input_size=(self.crop_size, self.crop_size),
             auto_augment=args.aa,
             interpolation=args.train_interpolation,
+            translate_fraction=self.translate_fraction,
         )
 
         buffer = [
@@ -219,11 +226,6 @@ class VideoClsDataset(Dataset):
         # T H W C -> C T H W.
         buffer = buffer.permute(3, 0, 1, 2)
         # Perform data augmentation.
-        scl, asp = (
-            [0.7, 1.0],
-            [0.75, 1.3333],
-        )
-
         buffer = spatial_sampling(
             buffer,
             spatial_idx=-1,
@@ -232,8 +234,8 @@ class VideoClsDataset(Dataset):
             crop_size=self.crop_size,
             random_horizontal_flip=False if args.data_set == 'SSV2' else True,
             inverse_uniform_sampling=False,
-            aspect_ratio=asp,
-            scale=scl,
+            aspect_ratio=self._asp,
+            scale=self._scl,
             motion_shift=False
         )
 

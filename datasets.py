@@ -5,6 +5,7 @@ import video_transforms
 from masking_generator import TubeMaskingGenerator, RandomMaskingGenerator
 from kinetics import VideoClsDataset, VideoDistillation
 from ssv2 import SSVideoClsDataset
+from maximal_crop_dataset import MaximalCropDataset
 
 
 class DataAugmentationForVideoDistillation(object):
@@ -83,9 +84,10 @@ def build_dataset(is_train, test_mode, args):
             mode = 'validation'
             anno_path = os.path.join(args.data_path, 'val.csv')
 
-        dataset = VideoClsDataset(
+        dataset = MaximalCropDataset(
             anno_path=anno_path,
             data_path=args.data_root,
+            det_anno_path=args.det_anno_path,
             mode=mode,
             clip_len=args.num_frames,
             frame_sample_rate=args.sampling_rate,
@@ -100,100 +102,100 @@ def build_dataset(is_train, test_mode, args):
             new_width=320,
             args=args,
         )
-        nb_classes = 400
+        # nb_classes = 400
 
-    elif args.data_set == 'SSV2':
-        mode = None
-        anno_path = None
-        if is_train is True:
-            mode = 'train'
-            anno_path = os.path.join(args.data_path, 'train.csv')
-        elif test_mode is True:
-            mode = 'test'
-            anno_path = os.path.join(args.data_path, 'val.csv') 
-        else:  
-            mode = 'validation'
-            anno_path = os.path.join(args.data_path, 'val.csv')
+    # elif args.data_set == 'SSV2':
+    #     mode = None
+    #     anno_path = None
+    #     if is_train is True:
+    #         mode = 'train'
+    #         anno_path = os.path.join(args.data_path, 'train.csv')
+    #     elif test_mode is True:
+    #         mode = 'test'
+    #         anno_path = os.path.join(args.data_path, 'val.csv') 
+    #     else:  
+    #         mode = 'validation'
+    #         anno_path = os.path.join(args.data_path, 'val.csv')
 
-        dataset = SSVideoClsDataset(
-            anno_path=anno_path,
-            data_path=args.data_root,
-            mode=mode,
-            clip_len=1,
-            num_segment=args.num_frames,
-            test_num_segment=args.test_num_segment,
-            test_num_crop=args.test_num_crop,
-            num_crop=1 if not test_mode else 3,
-            keep_aspect_ratio=True,
-            crop_size=args.input_size,
-            short_side_size=args.short_side_size,
-            new_height=256,
-            new_width=320,
-            args=args,
-        )
-        nb_classes = 174
+    #     dataset = SSVideoClsDataset(
+    #         anno_path=anno_path,
+    #         data_path=args.data_root,
+    #         mode=mode,
+    #         clip_len=1,
+    #         num_segment=args.num_frames,
+    #         test_num_segment=args.test_num_segment,
+    #         test_num_crop=args.test_num_crop,
+    #         num_crop=1 if not test_mode else 3,
+    #         keep_aspect_ratio=True,
+    #         crop_size=args.input_size,
+    #         short_side_size=args.short_side_size,
+    #         new_height=256,
+    #         new_width=320,
+    #         args=args,
+    #     )
+    #     nb_classes = 174
 
-    elif args.data_set == 'UCF101':
-        mode = None
-        anno_path = None
-        if is_train is True:
-            mode = 'train'
-            anno_path = os.path.join(args.data_path, 'train.csv')
-        elif test_mode is True:
-            mode = 'test'
-            anno_path = os.path.join(args.data_path, 'val.csv') 
-        else:  
-            mode = 'validation'
-            anno_path = os.path.join(args.data_path, 'test.csv')
+    # elif args.data_set == 'UCF101':
+    #     mode = None
+    #     anno_path = None
+    #     if is_train is True:
+    #         mode = 'train'
+    #         anno_path = os.path.join(args.data_path, 'train.csv')
+    #     elif test_mode is True:
+    #         mode = 'test'
+    #         anno_path = os.path.join(args.data_path, 'val.csv') 
+    #     else:  
+    #         mode = 'validation'
+    #         anno_path = os.path.join(args.data_path, 'test.csv')
 
-        dataset = VideoClsDataset(
-            anno_path=anno_path,
-            data_path=args.data_root,
-            mode=mode,
-            clip_len=args.num_frames,
-            frame_sample_rate=args.sampling_rate,
-            num_segment=1,
-            test_num_segment=args.test_num_segment,
-            test_num_crop=args.test_num_crop,
-            num_crop=1 if not test_mode else 3,
-            keep_aspect_ratio=True,
-            crop_size=args.input_size,
-            short_side_size=args.short_side_size,
-            new_height=256,
-            new_width=320,
-            args=args)
-        nb_classes = 101
+    #     dataset = VideoClsDataset(
+    #         anno_path=anno_path,
+    #         data_path=args.data_root,
+    #         mode=mode,
+    #         clip_len=args.num_frames,
+    #         frame_sample_rate=args.sampling_rate,
+    #         num_segment=1,
+    #         test_num_segment=args.test_num_segment,
+    #         test_num_crop=args.test_num_crop,
+    #         num_crop=1 if not test_mode else 3,
+    #         keep_aspect_ratio=True,
+    #         crop_size=args.input_size,
+    #         short_side_size=args.short_side_size,
+    #         new_height=256,
+    #         new_width=320,
+    #         args=args)
+    #     nb_classes = 101
     
-    elif args.data_set == 'HMDB51':
-        mode = None
-        anno_path = None
-        if is_train is True:
-            mode = 'train'
-            anno_path = os.path.join(args.data_path, 'train.csv')
-        elif test_mode is True:
-            mode = 'test'
-            anno_path = os.path.join(args.data_path, 'val.csv') 
-        else:  
-            mode = 'validation'
-            anno_path = os.path.join(args.data_path, 'test.csv') 
+    # elif args.data_set == 'HMDB51':
+    #     mode = None
+    #     anno_path = None
+    #     if is_train is True:
+    #         mode = 'train'
+    #         anno_path = os.path.join(args.data_path, 'train.csv')
+    #     elif test_mode is True:
+    #         mode = 'test'
+    #         anno_path = os.path.join(args.data_path, 'val.csv') 
+    #     else:  
+    #         mode = 'validation'
+    #         anno_path = os.path.join(args.data_path, 'test.csv') 
 
-        dataset = VideoClsDataset(
-            anno_path=anno_path,
-            data_path=args.data_root,
-            mode=mode,
-            clip_len=args.num_frames,
-            frame_sample_rate=args.sampling_rate,
-            num_segment=1,
-            test_num_segment=args.test_num_segment,
-            test_num_crop=args.test_num_crop,
-            num_crop=1 if not test_mode else 3,
-            keep_aspect_ratio=True,
-            crop_size=args.input_size,
-            short_side_size=args.short_side_size,
-            new_height=256,
-            new_width=320,
-            args=args)
-        nb_classes = 51
+    #     dataset = VideoClsDataset(
+    #         anno_path=anno_path,
+    #         data_path=args.data_root,
+    #         mode=mode,
+    #         clip_len=args.num_frames,
+    #         frame_sample_rate=args.sampling_rate,
+    #         num_segment=1,
+    #         test_num_segment=args.test_num_segment,
+    #         test_num_crop=args.test_num_crop,
+    #         num_crop=1 if not test_mode else 3,
+    #         keep_aspect_ratio=True,
+    #         crop_size=args.input_size,
+    #         short_side_size=args.short_side_size,
+    #         new_height=256,
+    #         new_width=320,
+    #         args=args)
+    #     nb_classes = 51
     else:
         raise NotImplementedError()
     # assert nb_classes == args.nb_classes

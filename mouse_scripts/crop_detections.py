@@ -6,7 +6,7 @@ from tqdm import tqdm
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 
-def analyze_annotations(annotation_path):
+def analyze_annotations(annotation_path, return_more=False):
     """
     Analyze annotation file to check if all frames have at least one bounding box.
     Returns a tuple (is_valid, issues) where is_valid is a boolean and issues is a list of problematic frames.
@@ -18,16 +18,20 @@ def analyze_annotations(annotation_path):
         print(f"Warning: Frame count mismatch in {annotation_path}")
     
     issues = []
+    distribution = np.zeros(6, dtype=int)
     for frame in annotation['frames']:
         frame_index = frame['index']
         num_figures = len(frame['figures'])
-        
         if num_figures == 0:
             issues.append(f"Frame {frame_index} has no bounding boxes")
         elif num_figures > 1:
             issues.append(f"Frame {frame_index} has {num_figures} bounding boxes (will use the largest one)")
+        distribution[min(num_figures, 5)] += 1
     
-    return len(issues) == 0, issues
+    if not return_more:
+        return len(issues) == 0, issues
+    else:
+        return len(issues) == 0, issues, distribution, annotation['framesCount']
 
 def get_bbox_area(bbox):
     """
@@ -247,6 +251,8 @@ def main():
         print("Analyzing annotations...")
         invalid_annotations = []
         
+        dists = []
+        N = 0
         for video_name in videos:
             video_path = os.path.join(input_subdir, video_name)
             annotation_path = os.path.join(annotation_subdir, video_name + '.json')
@@ -255,16 +261,19 @@ def main():
                 print(f"Warning: No annotation file found for {annotation_path}")
                 continue
             
-            is_valid, issues = analyze_annotations(annotation_path)
+            is_valid, issues, d, n = analyze_annotations(annotation_path, return_more=True)
+            dists.append(d)
+            N += n
             if not is_valid:
                 invalid_annotations.append((video_name, issues))
         
-        if invalid_annotations:
-            print("\nThe following videos have issues with their annotations:")
-            for video_name, issues in invalid_annotations:
-                print(f"{video_name}:")
-                for issue in issues:
-                    print(f"  - {issue}")
+        print("\nDistribution of bounding box counts:")
+        dists = np.array(dists)
+        dists = np.sum(dists, axis=0)
+        for i, count in enumerate(dists):
+            print(f"{i} bounding box(es): {count}")
+        
+        print(f"\nTotal frames: {N}")
             
     proceed = input("\nDo you want to proceed with processing these videos? (y/n): ")
     if proceed.lower() != 'y':

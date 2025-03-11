@@ -623,6 +623,7 @@ def create_random_augment(
     input_size,
     auto_augment=None,
     interpolation="bilinear",
+    translate_fraction=0.10,
 ):
     """
     Get video randaug transform.
@@ -645,7 +646,7 @@ def create_random_augment(
             img_size_min = min(img_size)
         else:
             img_size_min = img_size
-        aa_params = {"translate_const": int(img_size_min * 0.10)}
+        aa_params = {"translate_const": int(img_size_min * translate_fraction)}
         if interpolation and interpolation != "random":
             aa_params["interpolation"] = _pil_interp(interpolation)
         if auto_augment.startswith("rand"):
