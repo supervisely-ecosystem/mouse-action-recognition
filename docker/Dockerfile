@@ -36,3 +36,12 @@ RUN pip install --no-cache-dir \
     opencv-python \
     pandas==1.1.3 \
     -f https://download.pytorch.org/whl/torch_stable.html
+
+# Install OpenMPI
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openmpi-bin \
+    libopenmpi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python MPI bindings
+RUN pip install mpi4py
