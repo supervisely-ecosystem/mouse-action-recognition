@@ -23,7 +23,7 @@ from utils import multiple_samples_collate
 import utils
 import modeling_finetune
 
-print("V1.0")
+print("V2.0")
 
 def get_args():
     parser = argparse.ArgumentParser('MVD fine-tuning and evaluation script for video classification', add_help=False)
@@ -147,7 +147,7 @@ def get_args():
                         help='dataset path root')
     parser.add_argument('--data_path', default='/path/to/list_kinetics-400', type=str,
                         help='path of dataset file list')
-    parser.add_argument('--det_ann_path', default='/path/to/list_kinetics-400', type=str)
+    parser.add_argument('--det_anno_path', default='/path/to/detections', type=str)
     parser.add_argument('--eval_data_path', default=None, type=str,
                         help='dataset path for evaluation')
     parser.add_argument('--nb_classes', default=400, type=int,
@@ -267,7 +267,9 @@ def main(args, ds_init):
         dataset_val = None
     else:
         dataset_val, _ = build_dataset(is_train=False, test_mode=False, args=args)
-    dataset_test, _ = build_dataset(is_train=False, test_mode=True, args=args)
+    # dataset_test, _ = build_dataset(is_train=False, test_mode=True, args=args)
+    dataset_test = None
+    sampler_test = None
 
     num_tasks = utils.get_world_size()
     global_rank = utils.get_rank()
@@ -282,11 +284,13 @@ def main(args, ds_init):
                     'equal num of samples per-process.')
         sampler_val = torch.utils.data.DistributedSampler(
             dataset_val, num_replicas=num_tasks, rank=global_rank, shuffle=False)
-        sampler_test = torch.utils.data.DistributedSampler(
-            dataset_test, num_replicas=num_tasks, rank=global_rank, shuffle=False)
+        if dataset_test is not None:
+            sampler_test = torch.utils.data.DistributedSampler(
+                dataset_test, num_replicas=num_tasks, rank=global_rank, shuffle=False)
     else:
         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
-        sampler_test = torch.utils.data.SequentialSampler(dataset_test)
+        if dataset_test is not None:
+            sampler_test = torch.utils.data.SequentialSampler(dataset_test)
 
     if global_rank == 0 and args.log_dir is not None:
         os.makedirs(args.log_dir, exist_ok=True)
@@ -568,18 +572,19 @@ def main(args, ds_init):
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
 
-    preds_file = os.path.join(args.output_dir, str(global_rank) + '.txt')
-    test_stats = final_test(data_loader_test, model, device, preds_file)
-    torch.distributed.barrier()
-    if global_rank == 0:
-        print("Start merging results...")
-        final_top1 ,final_top5 = merge(args.output_dir, num_tasks)
-        print(f"Accuracy of the network on the {len(dataset_test)} test videos: Top-1: {final_top1:.2f}%, Top-5: {final_top5:.2f}%")
-        log_stats = {'Final top-1': final_top1,
-                    'Final Top-5': final_top5}
-        if args.output_dir and utils.is_main_process():
-            with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
-                f.write(json.dumps(log_stats) + "\n")
+    if dataset_test is not None:
+        preds_file = os.path.join(args.output_dir, str(global_rank) + '.txt')
+        test_stats = final_test(data_loader_test, model, device, preds_file)
+        torch.distributed.barrier()
+        if global_rank == 0:
+            print("Start merging results...")
+            final_top1 ,final_top5 = merge(args.output_dir, num_tasks)
+            print(f"Accuracy of the network on the {len(dataset_test)} test videos: Top-1: {final_top1:.2f}%, Top-5: {final_top5:.2f}%")
+            log_stats = {'Final top-1': final_top1,
+                        'Final Top-5': final_top5}
+            if args.output_dir and utils.is_main_process():
+                with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
+                    f.write(json.dumps(log_stats) + "\n")
 
 
     total_time = time.time() - start_time
@@ -592,4 +597,5 @@ if __name__ == '__main__':
     opts.output_dir = opts.output_dir + "_" + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     if opts.output_dir:
         Path(opts.output_dir).mkdir(parents=True, exist_ok=False)
+    opts.log_dir = os.path.join(opts.output_dir, 'logs')
     main(opts, ds_init)

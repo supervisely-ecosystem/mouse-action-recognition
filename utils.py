@@ -556,7 +556,7 @@ def create_ds_config(args):
             "fp16": {
                 "enabled": True,
                 "loss_scale": 0,
-                "initial_scale_power": 7,
+                "initial_scale_power": 10,
                 "loss_scale_window": 128
             }
         }
