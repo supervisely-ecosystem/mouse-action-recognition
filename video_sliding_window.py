@@ -1,11 +1,5 @@
-import os
-import numpy as np
-import torch
-import decord
-from PIL import Image
-from torchvision import transforms
-import warnings
 from decord import VideoReader, cpu
+import torch
 from torch.utils.data import Dataset, IterableDataset
 import video_transforms as video_transforms
 import volume_transforms as volume_transforms
@@ -23,7 +17,6 @@ class VideoSlidingWindow(IterableDataset):
         self.stride = stride
         
         self.vr = VideoReader(video_path)
-        # self.vr = VideoReader(video_path, width=self.new_width, height=self.new_height, num_threads=1, ctx=cpu(0))
             
         self.data_transform = video_transforms.Compose([
             video_transforms.Resize(size=(self.input_size, self.input_size), interpolation='bilinear'),
@@ -36,25 +29,25 @@ class VideoSlidingWindow(IterableDataset):
     def __iter__(self):
         total_frames = len(self.vr)
         # Calculate effective frame indices considering sample rate
-        effective_length = total_frames // self.frame_sample_rate
+        max_frame_idx = total_frames - 1
         
         # Determine how many complete windows we can extract
-        num_windows = max(0, (effective_length - self.num_frames) // self.stride + 1)
+        window_length = self.num_frames * self.frame_sample_rate
+        num_windows = max(0, (total_frames - window_length) // (self.stride * self.frame_sample_rate) + 1)
         
         for window_idx in range(num_windows):
-            start_idx = window_idx * self.stride
-            end_idx = start_idx + self.num_frames
+            start_idx = window_idx * self.stride * self.frame_sample_rate
             
             # Get the actual frame indices considering the sample rate
-            frame_indices = [i * self.frame_sample_rate for i in range(start_idx, end_idx)]
+            frame_indices = [start_idx + (i * self.frame_sample_rate) for i in range(self.num_frames)]
             
-            # Handle potential out-of-bounds indices
-            if frame_indices[-1] >= total_frames:
+            # Double-check that no frame indices are out of bounds
+            if any(idx > max_frame_idx for idx in frame_indices):
                 break
                 
             # Extract frames and process the window
             buffer = self._extract_frames(frame_indices)
-            yield buffer
+            yield buffer, frame_indices
 
     def _extract_frames(self, frame_indices):
         # Extract frames at the specified indices
@@ -64,6 +57,25 @@ class VideoSlidingWindow(IterableDataset):
 
     def __len__(self):
         total_frames = len(self.vr)
-        effective_length = total_frames // self.frame_sample_rate
-        num_windows = max(0, (effective_length - self.num_frames) // self.stride + 1)
-        return num_windows        
+        window_length = self.num_frames * self.frame_sample_rate
+        num_windows = max(0, (total_frames - window_length) // (self.stride * self.frame_sample_rate) + 1)
+        return num_windows
+
+    @staticmethod
+    def collate_fn(batch):
+        """
+        Custom collate function that stacks frames but keeps indices as a list of lists.
+        
+        Args:
+            batch: List of (buffer, frame_indices) tuples
+            
+        Returns:
+            Tuple of (stacked_frames, list_of_indices)
+        """
+        frames, indices = zip(*batch)
+        # Stack frames into a batch tensor
+        frames_batch = torch.stack(frames)
+        # Just keep indices as a list of lists without any tensor conversion
+        indices_batch = list(indices)
+        
+        return frames_batch, indices_batch

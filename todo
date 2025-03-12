@@ -4,7 +4,7 @@ inference with detector + maximal bbox
 - online or offline? online
 
 test mvd:
-- [ ] download ann for gt video.
+- [x] download ann for gt video.
 - [ ] inference -> {frame: probs} -> sly_ann tags -> visualize Positive fragments.
 - [ ] inference -> sly_ann tags -> benchmark format
 - [ ] gt ann -> benchmark format

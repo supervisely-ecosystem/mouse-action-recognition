@@ -5,6 +5,9 @@ from torch.utils.data import DataLoader
 import json
 import os
 from pathlib import Path
+import decord
+import numpy as np
+from matplotlib import pyplot as plt
 
 from timm.models import create_model
 from tqdm import tqdm
@@ -243,6 +246,75 @@ def get_parser():
     return parser
 
 
+def draw_timeline(predictions, fps, class_names=None, title=None, figsize=(15, 7)):
+    """
+    Draw a timeline of class probabilities from video predictions.
+    
+    Args:
+        predictions: List of dictionaries containing predictions for each window
+        fps: Frames per second of the video
+        num_classes: Number of classes to visualize
+        class_names: Optional list of class names for the legend
+        title: Optional title for the plot
+        figsize: Figure size (width, height) in inches
+    
+    Returns:
+        The matplotlib figure
+    """
+    # Extract time and probability information
+    times = []
+    # Determine the actual number of classes from the first prediction
+    num_classes = len(predictions[0]['probabilities'])
+    
+    all_probs = np.zeros((len(predictions), num_classes))
+    
+    for i, pred in enumerate(predictions):
+        # Use midpoint of frame range as the time point
+        frame_range = pred['frame_range']
+        mid_frame = (frame_range[0] + frame_range[1]) / 2
+        time_sec = mid_frame / fps
+        times.append(time_sec)
+        
+        # Extract probabilities for each class
+        probabilities = pred['probabilities']
+        all_probs[i, :] = probabilities
+    
+    # Create the visualization
+    fig = plt.figure(figsize=figsize)
+    
+    for idx in range(num_classes):
+        label = class_names[idx] if class_names else f"Class {idx}"
+        plt.plot(times, all_probs[:, idx], linewidth=2, label=label)
+    
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('Probability')
+    plt.title(title or 'Class Probabilities Over Time')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    
+    # Save the visualization
+    vis_path = f'results/timeline2_{experiment_name}.png'
+    plt.savefig(vis_path)
+    print(f"Visualization saved to {vis_path}")
+    
+    return fig
+
+
+def write_positive_fragments(predictions, video_path, output_dir):
+    """
+    Creates a bunch of video clips from the predictions.
+    Predictions are created as follows:
+    predictions.append({
+        'frame_range': frame_range,
+        'label': predicted_class,
+        'confidence': confidence,
+        'probabilities': prob.tolist(),
+    })
+    """
+    pass
+
+
 def parse_config(config_text):
     config_dict = {}
     
@@ -278,13 +350,15 @@ def parse_config(config_text):
 if __name__ == '__main__':
     checkpoint = "/root/volume/OUTPUT/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
     video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
-    ann_path = None
+    ann_path = Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
+    STRIDE = 8  # 8x2=16 of 32
 
-    exp_name = checkpoint.split('/')[-3]
-    print(f"Experiment name: {exp_name}")
+    experiment_name = checkpoint.split('/')[-3]
+    print(f"Experiment name: {experiment_name}")
     checkpoint = Path(checkpoint)
     assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
     assert Path(video_path).exists(), f"Video {video_path} does not exist."
+    assert ann_path.exists(), f"Annotation {ann_path} does not exist."
     output_dir = checkpoint.parent.parent
     
     config_file = output_dir / "config.txt"
@@ -312,6 +386,7 @@ if __name__ == '__main__':
 
     # Build the model
     model = build_model(opts)
+    model.eval()
     
     # Read the video
     dataset = VideoSlidingWindow(
@@ -319,7 +394,7 @@ if __name__ == '__main__':
         num_frames=opts.num_frames,
         frame_sample_rate=opts.sampling_rate,
         input_size=opts.input_size,
-        stride=5,
+        stride=STRIDE,
     )
 
     data_loader = DataLoader(
@@ -327,64 +402,53 @@ if __name__ == '__main__':
         batch_size=16,
         shuffle=False,
         num_workers=0,
+        collate_fn=VideoSlidingWindow.collate_fn,
     )
 
     # Inference
     device = opts.device
-    num_frames = opts.num_frames
-    frame_sample_rate = opts.sampling_rate
-    stride = 5
     print(f"Inference on {video_path}")
-    print(len(dataset))
-    all_probs = []
-    for videos in tqdm(data_loader):
-        videos = videos.to(device, non_blocking=True)
+    print(f"dataset length: {len(dataset)}")
 
-        # compute output
-        with torch.cuda.amp.autocast() and torch.no_grad():
-            output = model(videos)
-
-        prob = torch.softmax(output, dim=1)
-        all_probs.append(prob)
-
-    all_probs = torch.cat(all_probs, dim=0).cpu().numpy()  # (num_windows, num_classes)
-    print(all_probs.shape)
-
-    from matplotlib import pyplot as plt
-    import numpy as np
-
-    num_windows = all_probs.shape[0]
-    num_classes = all_probs.shape[1]
-
-    # Calculate frame timestamps for each window
-    window_centers = [(num_frames * frame_sample_rate) // 2 + i * stride for i in range(num_windows)]
-    
-    # Convert frame indices to seconds (assuming 30fps, adjust if different)
-    fps = dataset.vr.get_avg_fps()
-    time_in_seconds = [frame / fps for frame in window_centers]
+    predictions = []
+    for videos, frame_indices in tqdm(data_loader):
+        videos = videos.to(device)
+        with torch.cuda.amp.autocast():
+            with torch.no_grad():
+                output = model(videos)
         
-    # Create the visualization
-    plt.figure(figsize=(15, 7))
-    
-    for idx in range(num_classes):
-        plt.plot(time_in_seconds, all_probs[:, idx], linewidth=2, label=f"Class {idx}")
-    
-    plt.xlabel('Time (seconds)')
-    plt.ylabel('Probability')
-    plt.title('Class Probabilities Over Time')
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-    
-    # Save the visualization
-    vis_path = os.path.join(f'timeline_{exp_name}.png')
-    plt.savefig(vis_path)
-    print(f"Visualization saved to {vis_path}")
-    
-    # Also save the raw probabilities for further analysis
-    np.save(os.path.join(f'predictions_{exp_name}.npy'), all_probs)
-    
+        # Get probabilities from the model output
+        probs = torch.softmax(output, dim=1)
+        for i, frames in enumerate(frame_indices):
+            prob = probs[i].cpu().numpy()
+            predicted_class = int(np.argmax(prob))
+            confidence = float(prob[predicted_class])
+            frame_range = [int(frames[0]), int(frames[-1])]
+            predictions.append({
+                'frame_range': frame_range,
+                'label': predicted_class,
+                'confidence': confidence,
+                'probabilities': prob.tolist(),
+            })
+
+    # Save predictions to JSON file
+    os.makedirs("results", exist_ok=True)
+    output_json_path = f"results/predictions_{experiment_name}.json"
+    with open(output_json_path, 'w') as f:
+        json.dump(predictions, f, indent=4)
+        
+    class_names = ["idle", "Self-Grooming", "Head/Body Twitch"]
+    vr = decord.VideoReader(video_path)
+    fps = vr.get_avg_fps()    
+    draw_timeline(predictions, fps, class_names=class_names, 
+                 title=f"Class Probabilities for {Path(video_path).name}",
+                 figsize=(15, 7))
+
     # Display additional statistics
+    # Extract probabilities from the predictions list
+    all_probs = np.array([pred['probabilities'] for pred in predictions])
+    num_windows = len(predictions)
+    
     # Get the most probable class for each window
     dominant_classes = np.argmax(all_probs, axis=1)
     class_counts = np.bincount(dominant_classes)
@@ -394,5 +458,3 @@ if __name__ == '__main__':
         if class_counts[cls] > 0:
             percentage = (class_counts[cls] / num_windows) * 100
             print(f"Class {cls}: {percentage:.2f}% ({class_counts[cls]} windows)")
-
-
