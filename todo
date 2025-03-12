@@ -5,10 +5,13 @@ inference with detector + maximal bbox
 
 test mvd:
 - [x] download ann for gt video.
-- [ ] inference -> {frame: probs} -> sly_ann tags -> visualize Positive fragments.
-- [ ] inference -> sly_ann tags -> benchmark format
+- [x] make inference mvd {frame: probs}
+- [ ] make inference with detector (maximal bbox):
+    Deploy custom rtdetr-v2 in separate docker -> session.inference_image_batch(frames)
+- [ ] visualize Positive fragments (use Claude chat)
+- [ ] benchmark: inference -> sly_ann tags -> benchmark format
 - [ ] gt ann -> benchmark format
-- [ ] benchmark
+- [ ] run benchmark
 
 task:
 1. clone rt-detr. requirements.txt? the same docker? torch version?
