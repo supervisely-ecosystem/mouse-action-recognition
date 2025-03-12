@@ -1,0 +1,17 @@
+todo
+
+inference with detector + maximal bbox
+- online or offline? online
+
+test mvd:
+- [ ] download ann for gt video.
+- [ ] inference -> {frame: probs} -> sly_ann tags -> visualize Positive fragments.
+- [ ] inference -> sly_ann tags -> benchmark format
+- [ ] gt ann -> benchmark format
+- [ ] benchmark
+
+task:
+1. clone rt-detr. requirements.txt? the same docker? torch version?
+2. local code or fastapi server?
+3. inference code
+4. benchmark

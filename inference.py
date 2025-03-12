@@ -185,6 +185,7 @@ def get_parser():
                         help='dataset path root')
     parser.add_argument('--data_path', default='/path/to/list_kinetics-400', type=str,
                         help='path of dataset file list')
+    parser.add_argument('--det_anno_path', default='/path/to/detections', type=str)
     parser.add_argument('--eval_data_path', default=None, type=str,
                         help='dataset path for evaluation')
     parser.add_argument('--nb_classes', default=400, type=int,
@@ -275,8 +276,12 @@ def parse_config(config_text):
     return config_dict
 
 if __name__ == '__main__':
-    checkpoint = "/root/volume/MP_TRAIN_3_2025-03-01_11-18-45/checkpoint-9/mp_rank_00_model_states.pt"
+    checkpoint = "/root/volume/OUTPUT/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
     video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
+    ann_path = None
+
+    exp_name = checkpoint.split('/')[-3]
+    print(f"Experiment name: {exp_name}")
     checkpoint = Path(checkpoint)
     assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
     assert Path(video_path).exists(), f"Video {video_path} does not exist."
@@ -324,12 +329,12 @@ if __name__ == '__main__':
         num_workers=0,
     )
 
-    # Perform evaluation
+    # Inference
     device = opts.device
     num_frames = opts.num_frames
     frame_sample_rate = opts.sampling_rate
     stride = 5
-    print(f"Performing evaluation on {video_path}")
+    print(f"Inference on {video_path}")
     print(len(dataset))
     all_probs = []
     for videos in tqdm(data_loader):
@@ -372,12 +377,12 @@ if __name__ == '__main__':
     plt.tight_layout()
     
     # Save the visualization
-    vis_path = os.path.join('timeline_visualization.png')
+    vis_path = os.path.join(f'timeline_{exp_name}.png')
     plt.savefig(vis_path)
     print(f"Visualization saved to {vis_path}")
     
     # Also save the raw probabilities for further analysis
-    np.save(os.path.join('class_probabilities.npy'), all_probs)
+    np.save(os.path.join(f'predictions_{exp_name}.npy'), all_probs)
     
     # Display additional statistics
     # Get the most probable class for each window
