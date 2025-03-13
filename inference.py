@@ -18,7 +18,7 @@ from video_sliding_window import VideoSlidingWindow
 from maximal_bbox_sliding_window import MaximalBBoxSlidingWindow
 import utils
 from arg_parser import get_parser
-from inference_visualizations import draw_timeline
+from inference_visualizations import draw_timeline, write_positive_fragments
 import modeling_finetune  # register the new model
 import supervisely as sly
 from supervisely.nn.inference import SessionJSON
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     print(f"dataset length: {len(dataset)}")
 
     predictions = []
-    for input, frame_indices in tqdm(data_loader):
+    for input, frame_indices, bboxes in tqdm(data_loader):
         input = input.to(device)
         with torch.cuda.amp.autocast():
             with torch.no_grad():
@@ -184,11 +184,13 @@ if __name__ == '__main__':
             predicted_class = int(np.argmax(prob))
             confidence = float(prob[predicted_class])
             frame_range = [int(frame_idxs[0]), int(frame_idxs[-1])]
+            bbox = bboxes[i]
             predictions.append({
                 'frame_range': frame_range,
                 'label': predicted_class,
                 'confidence': confidence,
                 'probabilities': prob.tolist(),
+                'maximal_bbox': bbox,
             })
 
     # Save predictions to JSON file
@@ -202,7 +204,7 @@ if __name__ == '__main__':
     fps = vr.get_avg_fps()    
     draw_timeline(predictions, fps, experiment_name=experiment_name, class_names=class_names,
                  figsize=(15, 7))
-
+    
     # Display additional statistics
     # Extract probabilities from the predictions list
     all_probs = np.array([pred['probabilities'] for pred in predictions])
@@ -217,3 +219,5 @@ if __name__ == '__main__':
         if class_counts[cls] > 0:
             percentage = (class_counts[cls] / num_windows) * 100
             print(f"Class {cls}: {percentage:.2f}% ({class_counts[cls]} windows)")
+
+    write_positive_fragments(predictions, video_path, crop=True, output_dir="results")

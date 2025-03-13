@@ -6,9 +6,9 @@ inference with detector + maximal bbox
 test mvd:
 - [x] download ann for gt video.
 - [x] make inference mvd {frame: probs}
-- [ ] make inference with detector (maximal bbox):
+- [x] make inference with detector (maximal bbox):
     Deploy custom rtdetr-v2 in separate docker -> session.inference_image_batch(frames)
-- [ ] visualize Positive fragments (use Claude chat)
+- [x] visualize Positive fragments (use Claude chat)
 - [ ] benchmark: inference -> sly_ann tags -> benchmark format
 - [ ] gt ann -> benchmark format
 - [ ] run benchmark

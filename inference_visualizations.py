@@ -4,6 +4,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from bbox_utils import get_maximal_bbox
 
 def draw_timeline(predictions, fps, experiment_name=None, class_names=None, figsize=(15, 7), output_dir='results'):
     """
@@ -59,7 +60,7 @@ def draw_timeline(predictions, fps, experiment_name=None, class_names=None, figs
     print(f"Visualization saved to {vis_path}")
     return fig
 
-def write_positive_fragments(predictions, video_path, output_dir='results'):
+def write_positive_fragments(predictions, video_path, crop=False, output_dir='results'):
     """
     Creates a bunch of video clips of positive predictions. Prediction is positive if the label is not 0.
     The function creates a directory of video segments copied from the original video.
@@ -124,19 +125,27 @@ def write_positive_fragments(predictions, video_path, output_dir='results'):
         start_frame, end_frame = pred['frame_range']
         label = pred['label']
         confidence = pred['confidence']
+        bbox = pred.get('maximal_bbox')
         
         # If this is the first segment or it doesn't overlap with previous segment
         if not merged_segments or start_frame > merged_segments[-1]['frame_range'][1] or label != merged_segments[-1]['label']:
             merged_segments.append({
                 'frame_range': [start_frame, end_frame],
                 'label': label,
-                'confidence': confidence
+                'confidence': confidence,
+                'bbox': bbox,
             })
         else:
             # Extend the previous segment
             merged_segments[-1]['frame_range'][1] = max(merged_segments[-1]['frame_range'][1], end_frame)
             # Update confidence to the max of the two segments
             merged_segments[-1]['confidence'] = max(merged_segments[-1]['confidence'], confidence)
+            # Update bbox if needed
+            if crop:
+                assert bbox is not None, "Bbox is required for cropping"
+                merged_segments[-1]['bbox'] = get_maximal_bbox(
+                    [merged_segments[-1]['bbox'], bbox]
+                )
     
     print(f"Merged {len(positive_predictions)} positive predictions into {len(merged_segments)} segments")
     
@@ -151,18 +160,38 @@ def write_positive_fragments(predictions, video_path, output_dir='results'):
         
         # Output file path
         output_file = clips_dir / f"clip_{start_frame}_{end_frame}_{label}.mp4"
-        
-        # ffmpeg command to extract the segment without re-encoding
-        cmd = [
-            'ffmpeg',
-            '-y',  # Overwrite output file if it exists
-            '-ss', f"{start_time}",  # Start position
-            '-i', video_path,  # Input file
-            '-t', f"{duration}",  # Duration
-            '-c:v', 'copy',  # Copy video stream without re-encoding (much faster)
-            "-an",  # Remove audio
-            str(output_file)
-        ]
+
+        if crop:
+            # ffmpeg command to extract the segment with cropping
+            x1, y1, x2, y2 = segment['bbox']
+            width = x2 - x1
+            height = y2 - y1
+            cmd = [
+                'ffmpeg',
+                '-y',  # Overwrite output file if it exists
+                '-ss', f"{start_time}",  # Start position
+                '-i', video_path,  # Input file
+                '-t', f"{duration}",  # Duration
+                '-vf', f"crop={width}:{height}:{x1}:{y1}",  # Crop filter
+                '-c:v', 'libx264',  # We can't use copy with filters
+                '-preset', 'veryfast',  # Fastest encoding
+                '-crf', '23',  # Quality factor (lower is better)
+                '-pix_fmt', 'yuv420p',  # Pixel format
+                '-an',  # Remove audio
+                str(output_file)
+            ]
+        else:
+            # ffmpeg command to extract the segment without re-encoding
+            cmd = [
+                'ffmpeg',
+                '-y',  # Overwrite output file if it exists
+                '-ss', f"{start_time}",  # Start position
+                '-i', video_path,  # Input file
+                '-t', f"{duration}",  # Duration
+                '-c:v', 'copy',  # Copy video stream without re-encoding (much faster)
+                '-an',  # Remove audio
+                str(output_file)
+            ]
         
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     

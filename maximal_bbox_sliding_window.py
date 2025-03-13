@@ -38,7 +38,7 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
                 from my_utils import save_frames_as_video
                 save_frames_as_video(buffer, "tmp/maximal_bbox.mp4", fps=10)
             buffer = self.data_transform(buffer)
-            yield buffer, frame_indices
+            yield buffer, frame_indices, (x1, y1, x2, y2)
     
     def _detect(self, frames):
         with TemporaryDirectory() as tmpdir:
@@ -100,13 +100,12 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
         Returns:
             Tuple of (stacked_frames, list_of_indices)
         """
-        tensors, indices = zip(*batch)
-        # Stack frames into a batch tensor
+        tensors, indices, bbox = zip(*batch)
         tensor_batch = torch.stack(tensors)
-        # Just keep indices as a list of lists without any tensor conversion
         indices_batch = list(indices)
+        bbox_batch = list(bbox)
         
-        return tensor_batch, indices_batch
+        return tensor_batch, indices_batch, bbox_batch
 
 def get_maximal_bbox_crop(figures, img_size, padding=0.0):
     w, h = img_size
