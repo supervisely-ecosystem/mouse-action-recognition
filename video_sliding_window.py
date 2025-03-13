@@ -27,6 +27,12 @@ class VideoSlidingWindow(IterableDataset):
         ])
 
     def __iter__(self):
+        for window_idx, frame_indices in enumerate(self._iterate_sliding_window()):
+            frames = self.vr.get_batch(frame_indices).asnumpy()
+            buffer = self.data_transform(frames)
+            yield buffer, frames, frame_indices
+    
+    def _iterate_sliding_window(self):
         total_frames = len(self.vr)
         # Calculate effective frame indices considering sample rate
         max_frame_idx = total_frames - 1
@@ -45,15 +51,7 @@ class VideoSlidingWindow(IterableDataset):
             if any(idx > max_frame_idx for idx in frame_indices):
                 break
                 
-            # Extract frames and process the window
-            buffer = self._extract_frames(frame_indices)
-            yield buffer, frame_indices
-
-    def _extract_frames(self, frame_indices):
-        # Extract frames at the specified indices
-        buffer = self.vr.get_batch(frame_indices).asnumpy()
-        buffer = self.data_transform(buffer)
-        return buffer
+            yield frame_indices
 
     def __len__(self):
         total_frames = len(self.vr)
@@ -72,10 +70,10 @@ class VideoSlidingWindow(IterableDataset):
         Returns:
             Tuple of (stacked_frames, list_of_indices)
         """
-        frames, indices = zip(*batch)
+        tensors, frames, indices = zip(*batch)
         # Stack frames into a batch tensor
-        frames_batch = torch.stack(frames)
+        tensor_batch = torch.stack(tensors)
         # Just keep indices as a list of lists without any tensor conversion
         indices_batch = list(indices)
         
-        return frames_batch, indices_batch
+        return tensor_batch, frames, indices_batch

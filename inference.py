@@ -352,6 +352,10 @@ if __name__ == '__main__':
     video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
     ann_path = Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
     STRIDE = 8  # 8x2=16 of 32
+    detector_url = "http://supervisely-utils-rtdetrv2-inference-1:8000"
+    import supervisely as sly
+    api = sly.Api()
+    detector = sly.nn.inference.Session(api, session_url=detector_url)
 
     experiment_name = checkpoint.split('/')[-3]
     print(f"Experiment name: {experiment_name}")
@@ -411,19 +415,19 @@ if __name__ == '__main__':
     print(f"dataset length: {len(dataset)}")
 
     predictions = []
-    for videos, frame_indices in tqdm(data_loader):
-        videos = videos.to(device)
+    for input, frames_batch, frame_indices in tqdm(data_loader):
+        input = input.to(device)
         with torch.cuda.amp.autocast():
             with torch.no_grad():
-                output = model(videos)
+                output = model(input)
         
         # Get probabilities from the model output
         probs = torch.softmax(output, dim=1)
-        for i, frames in enumerate(frame_indices):
+        for i, frame_idxs in enumerate(frame_indices):
             prob = probs[i].cpu().numpy()
             predicted_class = int(np.argmax(prob))
             confidence = float(prob[predicted_class])
-            frame_range = [int(frames[0]), int(frames[-1])]
+            frame_range = [int(frame_idxs[0]), int(frame_idxs[-1])]
             predictions.append({
                 'frame_range': frame_range,
                 'label': predicted_class,
