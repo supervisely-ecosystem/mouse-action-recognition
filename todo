@@ -9,7 +9,7 @@ test mvd:
 - [x] make inference with detector (maximal bbox):
     Deploy custom rtdetr-v2 in separate docker -> session.inference_image_batch(frames)
 - [x] visualize Positive fragments (use Claude chat)
-- [ ] benchmark: inference -> sly_ann tags -> benchmark format
+- [ ] benchmark: inference -> predictions -> benchmark format
 - [ ] gt ann -> benchmark format
 - [ ] run benchmark
 
@@ -20,6 +20,7 @@ task:
 4. benchmark
 
 speed up:
+- implement session.inference_iamges
 - use cv2 video_reader to read video faster
 - multiprocessing reader
 - may be use local detector instead of in a separate docker

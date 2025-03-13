@@ -1,9 +1,13 @@
+import json
+from pathlib import Path
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Set, Optional, NamedTuple
 from scipy.optimize import linear_sum_assignment
 import numba
 from collections import defaultdict
+
+from bbox_utils import get_maximal_bbox
 
 
 @dataclass(frozen=True)
@@ -413,9 +417,50 @@ class TemporalMetrics:
             }
         
         return class_metrics
+    
+    
+def merge_predictions(predictions: list):
+    """
+    Merge predictions based on frame ranges and labels.
+    """
+    predictions.sort(key=lambda x: x['frame_range'][0])
+    merged_predictions = []
+    for pred in predictions:
+        start_frame, end_frame = pred['frame_range']
+        label = pred['label']
+        confidence = pred['confidence']
+        bbox = pred.get('maximal_bbox')
+        
+        # If this is the first segment or it doesn't overlap with previous segment
+        if not merged_predictions or start_frame > merged_predictions[-1]['frame_range'][1] or label != merged_predictions[-1]['label']:
+            merged_predictions.append({
+                'frame_range': [start_frame, end_frame],
+                'label': label,
+                'confidence': confidence,
+                'bbox': bbox,
+            })
+        else:
+            # Extend the previous segment
+            merged_predictions[-1]['frame_range'][1] = max(merged_predictions[-1]['frame_range'][1], end_frame)
+            # Update confidence to the max of the two segments
+            merged_predictions[-1]['confidence'] = max(merged_predictions[-1]['confidence'], confidence)
+            # Update bbox if needed
+            if bbox is not None:
+                merged_predictions[-1]['bbox'] = get_maximal_bbox([merged_predictions[-1]['bbox'], bbox])
+    
+    print(f"Merged {len(predictions)} predictions into {len(merged_predictions)}")
+    return merged_predictions
 
 
-# Example usage
+def extract_positive_predictions(predictions: list):
+    """
+    Extract positive predictions (label != 0) from the list of predictions.
+    """
+    positive_predictions = [pred for pred in predictions if pred['label'] != 0]
+    print(f"Found {len(positive_predictions)} positive predictions out of {len(predictions)} total")
+    return positive_predictions
+
+
 if __name__ == "__main__":
     # Create sample data
     ground_truth = [
@@ -424,14 +469,17 @@ if __name__ == "__main__":
         ActionSegment(start_frame=150, end_frame=200, action_class="jump"),
         ActionSegment(start_frame=240, end_frame=280, action_class="fall")
     ]
+
+    video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
+    ann_path = Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
+    predictions_path = "results/predictions_MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26.json"
     
-    predictions = [
-        ActionSegment(start_frame=15, end_frame=55, action_class="jump", confidence=0.9),
-        ActionSegment(start_frame=60, end_frame=105, action_class="run", confidence=0.8),
-        ActionSegment(start_frame=155, end_frame=195, action_class="jump", confidence=0.7),
-        ActionSegment(start_frame=230, end_frame=265, action_class="fall", confidence=0.6),
-        ActionSegment(start_frame=300, end_frame=350, action_class="jump", confidence=0.5)  # False positive
-    ]
+    with open(predictions_path, 'r') as f:
+        predictions = json.load(f)
+    
+    # Merge predictions
+    predictions = merge_predictions(predictions)
+    predictions = extract_positive_predictions(predictions)
 
     # from random import shuffle
     # shuffle(predictions)
