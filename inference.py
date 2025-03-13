@@ -183,7 +183,7 @@ if __name__ == '__main__':
             prob = probs[i].cpu().numpy()
             predicted_class = int(np.argmax(prob))
             confidence = float(prob[predicted_class])
-            frame_range = [int(frame_idxs[0]), int(frame_idxs[-1])]
+            frame_range = [int(frame_idxs[0]), int(frame_idxs[-1]) + opts.sampling_rate]  # inclusive range
             bbox = bboxes[i]
             predictions.append({
                 'frame_range': frame_range,
