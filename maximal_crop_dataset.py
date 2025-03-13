@@ -157,18 +157,3 @@ def get_square_bbox(bbox, padding=0.0):
     y2 = y2 + pad_px
     
     return int(x1), int(y1), int(x2), int(y2)
-
-
-def get_maximal_bbox_crop(figures, img_size, padding=0.0):
-    w, h = img_size
-    if not figures:
-        print(f"No found any detections")
-        x1, y1, x2, y2 = 0, 0, w, h
-    else:
-        x1, y1, x2, y2 = get_maximal_bbox(figures)
-        x1, y1, x2, y2 = get_square_bbox((x1, y1, x2, y2), padding=padding)
-    x1 = max(0, x1)
-    y1 = max(0, y1)
-    x2 = min(w, x2)
-    y2 = min(h, y2)
-    return x1, y1, x2, y2

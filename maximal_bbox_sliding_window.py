@@ -1,5 +1,5 @@
 from video_sliding_window import VideoSlidingWindow
-from maximal_crop_dataset import get_maximal_bbox_crop
+from maximal_crop_dataset import get_maximal_bbox, get_square_bbox
 from supervisely.nn.inference import SessionJSON
 from tempfile import TemporaryDirectory
 from PIL import Image
@@ -81,3 +81,18 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
                 
         # Retrieve annotations for all requested frames
         return [self.detection_cache[idx] for idx in frame_indices]
+
+
+def get_maximal_bbox_crop(figures, img_size, padding=0.0):
+    w, h = img_size
+    if not figures:
+        print(f"No found any detections")
+        x1, y1, x2, y2 = 0, 0, w, h
+    else:
+        x1, y1, x2, y2 = get_maximal_bbox(figures)
+        x1, y1, x2, y2 = get_square_bbox((x1, y1, x2, y2), padding=padding)
+    x1 = max(0, x1)
+    y1 = max(0, y1)
+    x2 = min(w, x2)
+    y2 = min(h, y2)
+    return x1, y1, x2, y2
