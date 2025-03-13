@@ -1,3 +1,4 @@
+import torch
 from video_sliding_window import VideoSlidingWindow
 from maximal_crop_dataset import get_maximal_bbox, get_square_bbox
 from supervisely.nn.inference import SessionJSON
@@ -23,26 +24,32 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
             w, h = buffer.shape[2], buffer.shape[1]
             
             # Get the bounding boxes for the current window using caching
-            annontations = self._detect_with_caching(buffer.tolist(), frame_indices)
+            annontations = self._detect_with_caching(buffer, frame_indices)
             figures = [fig for frame in annontations for fig in frame['objects']]
+            for fig in figures:
+                fig['geometry'] = fig.copy()
             
             # Get the maximal bounding box
             x1, y1, x2, y2 = get_maximal_bbox_crop(figures, (w, h), padding=self.bbox_padding)
 
             buffer = buffer[:, y1:y2, x1:x2, :]
+            if window_idx == 0:
+                print(f"Maximal bounding box: {x1}, {y1}, {x2}, {y2}")
+                from my_utils import save_frames_as_video
+                save_frames_as_video(buffer, "tmp/maximal_bbox.mp4", fps=10)
             buffer = self.data_transform(buffer)
             yield buffer, frame_indices
     
-    def _detect(self, frames: list):
-        assert isinstance(frames, list), "Frames should be a list of numpy arrays"
+    def _detect(self, frames):
         with TemporaryDirectory() as tmpdir:
             img_paths = []
             for i, frame in enumerate(frames):
                 frame_path = os.path.join(tmpdir, f"frame_{i}.jpg")
                 Image.fromarray(frame).save(frame_path)
                 img_paths.append(frame_path)
-            ann_json = self.detector.inference_image_paths(img_paths)
-        return ann_json
+            anns = self.detector.inference_image_paths(img_paths)
+            anns = [ann['annotation'] for ann in anns]
+        return anns
 
     def _detect_with_caching(self, frames, frame_indices):
         """
@@ -82,6 +89,24 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
         # Retrieve annotations for all requested frames
         return [self.detection_cache[idx] for idx in frame_indices]
 
+    @staticmethod
+    def collate_fn(batch):
+        """
+        Custom collate function that stacks frames but keeps indices as a list of lists.
+        
+        Args:
+            batch: List of (buffer, frame_indices) tuples
+            
+        Returns:
+            Tuple of (stacked_frames, list_of_indices)
+        """
+        tensors, indices = zip(*batch)
+        # Stack frames into a batch tensor
+        tensor_batch = torch.stack(tensors)
+        # Just keep indices as a list of lists without any tensor conversion
+        indices_batch = list(indices)
+        
+        return tensor_batch, indices_batch
 
 def get_maximal_bbox_crop(figures, img_size, padding=0.0):
     w, h = img_size

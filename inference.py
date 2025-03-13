@@ -15,8 +15,11 @@ from tqdm import tqdm
 from datasets import build_dataset
 from engine_for_finetuning import train_one_epoch, validation_one_epoch, final_test, merge
 from video_sliding_window import VideoSlidingWindow
+from maximal_bbox_sliding_window import MaximalBBoxSlidingWindow
 import utils
 import modeling_finetune  # register the new model
+import supervisely as sly
+from supervisely.nn.inference import SessionJSON
 
 
 def build_model(args):
@@ -353,9 +356,8 @@ if __name__ == '__main__':
     ann_path = Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
     STRIDE = 8  # 8x2=16 of 32
     detector_url = "http://supervisely-utils-rtdetrv2-inference-1:8000"
-    import supervisely as sly
     api = sly.Api()
-    detector = sly.nn.inference.Session(api, session_url=detector_url)
+    detector = SessionJSON(api, session_url=detector_url)
 
     experiment_name = checkpoint.split('/')[-3]
     print(f"Experiment name: {experiment_name}")
@@ -393,8 +395,9 @@ if __name__ == '__main__':
     model.eval()
     
     # Read the video
-    dataset = VideoSlidingWindow(
+    dataset = MaximalBBoxSlidingWindow(
         video_path,
+        detector=detector,
         num_frames=opts.num_frames,
         frame_sample_rate=opts.sampling_rate,
         input_size=opts.input_size,
@@ -406,7 +409,7 @@ if __name__ == '__main__':
         batch_size=16,
         shuffle=False,
         num_workers=0,
-        collate_fn=VideoSlidingWindow.collate_fn,
+        collate_fn=MaximalBBoxSlidingWindow.collate_fn,
     )
 
     # Inference
@@ -415,7 +418,7 @@ if __name__ == '__main__':
     print(f"dataset length: {len(dataset)}")
 
     predictions = []
-    for input, frames_batch, frame_indices in tqdm(data_loader):
+    for input, frame_indices in tqdm(data_loader):
         input = input.to(device)
         with torch.cuda.amp.autocast():
             with torch.no_grad():
