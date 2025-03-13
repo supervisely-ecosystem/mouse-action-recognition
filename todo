@@ -18,3 +18,8 @@ task:
 2. local code or fastapi server?
 3. inference code
 4. benchmark
+
+speed up:
+- use cv2 video_reader to read video faster
+- multiprocessing reader
+- may be use local detector instead of in a separate docker

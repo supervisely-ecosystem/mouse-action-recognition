@@ -16,7 +16,7 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
         self.detector = detector
         self.bbox_padding = bbox_padding
         self.detection_cache = OrderedDict()  # Cache for storing detections by frame index
-        self.max_cache_size = 100
+        self.max_cache_size = 128
     
     def __iter__(self):
         for window_idx, frame_indices in enumerate(self._iterate_sliding_window()):
