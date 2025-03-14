@@ -1,7 +1,6 @@
 import json
 import os
 from pathlib import Path
-import decord
 import numpy as np
 
 from tqdm import tqdm
@@ -29,31 +28,34 @@ if __name__ == '__main__':
     detector = load_detector(session_url=detector_url)
 
     # Predict
-    predictions = predict_video_with_detector(
+    predictions_raw = predict_video_with_detector(
         video_path,
         model,
         detector,
         opts,
         stride=STRIDE
     )
-    predictions = postprocess_predictions(predictions)
+    predictions = postprocess_predictions(predictions_raw)
 
     # Save predictions to JSON file
     os.makedirs("results2", exist_ok=True)
     output_json_path = f"results2/predictions_{experiment_name}.json"
     with open(output_json_path, 'w') as f:
         json.dump(predictions, f, indent=4)
-        
-    class_names = ["idle", "Self-Grooming", "Head/Body Twitch"]
+    
+
+    # Visualize predictions
+    class_names = ["idle", "Self-Grooming", "Head/Body TWITCH"]
+    import decord  # WARNING: if import decord in top, it will crash with 'Segmentation fault (core dumped)'
     vr = decord.VideoReader(video_path)
     fps = vr.get_avg_fps()    
-    draw_timeline(predictions, fps, experiment_name=experiment_name, class_names=class_names,
+    draw_timeline(predictions_raw, fps, experiment_name=experiment_name, class_names=class_names,
                  figsize=(15, 7))
     
     # Display additional statistics
     # Extract probabilities from the predictions list
-    all_probs = np.array([pred['probabilities'] for pred in predictions])
-    num_windows = len(predictions)
+    all_probs = np.array([pred['probabilities'] for pred in predictions_raw])
+    num_windows = len(predictions_raw)
     
     # Get the most probable class for each window
     dominant_classes = np.argmax(all_probs, axis=1)
@@ -65,4 +67,4 @@ if __name__ == '__main__':
             percentage = (class_counts[cls] / num_windows) * 100
             print(f"Class {cls}: {percentage:.2f}% ({class_counts[cls]} windows)")
 
-    write_positive_fragments(predictions, video_path, crop=True, output_dir="results2")
+    write_positive_fragments(predictions_raw, video_path, crop=True, output_dir="results2")
