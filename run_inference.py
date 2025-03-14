@@ -38,8 +38,8 @@ if __name__ == '__main__':
     predictions = postprocess_predictions(predictions_raw)
 
     # Save predictions to JSON file
-    os.makedirs("results2", exist_ok=True)
-    output_json_path = f"results2/predictions_{experiment_name}.json"
+    os.makedirs("results", exist_ok=True)
+    output_json_path = f"results/predictions_{experiment_name}.json"
     with open(output_json_path, 'w') as f:
         json.dump(predictions, f, indent=4)
     
@@ -67,4 +67,4 @@ if __name__ == '__main__':
             percentage = (class_counts[cls] / num_windows) * 100
             print(f"Class {cls}: {percentage:.2f}% ({class_counts[cls]} windows)")
 
-    write_positive_fragments(predictions_raw, video_path, crop=True, output_dir="results2")
+    write_positive_fragments(predictions_raw, video_path, crop=True, output_dir="results")
