@@ -10,9 +10,9 @@ from src.inference.inference import predict_video_with_detector, load_mvd, load_
 
 if __name__ == "__main__":
     CLASS_NAMES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
-    dataset_dir = "data/mouse/sampled_dataset"
+    dataset_dir = "/root/volume/data/mouse/sampled_dataset"
     checkpoint = "/root/volume/OUTPUT/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
-    output_dir = "results/evaluation"
+    output_dir = "/root/volume/results/evaluation"
     detector_url = "http://supervisely-utils-rtdetrv2-inference-1:8000"
 
     experiment_name = checkpoint.split('/')[-3]
