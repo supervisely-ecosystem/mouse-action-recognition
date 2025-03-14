@@ -207,4 +207,4 @@ if __name__ == "__main__":
     with open(predictions_path, 'r') as f:
         predictions = json.load(f)
     
-    write_positive_fragments(predictions, video_path)
+    write_positive_fragments(predictions, video_path, crop=True, output_dir='results')

@@ -7,6 +7,7 @@ import numba
 from collections import defaultdict
 
 from bbox_utils import get_maximal_bbox
+from inference import postprocess_predictions
 
 
 @dataclass(frozen=True)
@@ -416,48 +417,6 @@ class TemporalMetrics:
             }
         
         return class_metrics
-    
-    
-def merge_predictions(predictions: list):
-    """
-    Merge predictions based on frame ranges and labels.
-    """
-    predictions.sort(key=lambda x: x['frame_range'][0])
-    merged_predictions = []
-    for pred in predictions:
-        start_frame, end_frame = pred['frame_range']
-        label = pred['label']
-        confidence = pred['confidence']
-        bbox = pred.get('maximal_bbox')
-        
-        # If this is the first segment or it doesn't overlap with previous segment
-        if not merged_predictions or start_frame > merged_predictions[-1]['frame_range'][1] or label != merged_predictions[-1]['label']:
-            merged_predictions.append({
-                'frame_range': [start_frame, end_frame],
-                'label': label,
-                'confidence': confidence,
-                'bbox': bbox,
-            })
-        else:
-            # Extend the previous segment
-            merged_predictions[-1]['frame_range'][1] = max(merged_predictions[-1]['frame_range'][1], end_frame)
-            # Update confidence to the max of the two segments
-            merged_predictions[-1]['confidence'] = max(merged_predictions[-1]['confidence'], confidence)
-            # Update bbox if needed
-            if bbox is not None:
-                merged_predictions[-1]['bbox'] = get_maximal_bbox([merged_predictions[-1]['bbox'], bbox])
-    
-    print(f"Merged {len(predictions)} predictions into {len(merged_predictions)}")
-    return merged_predictions
-
-
-def extract_positive_predictions(predictions: list):
-    """
-    Extract positive predictions (label != 0) from the list of predictions.
-    """
-    positive_predictions = [pred for pred in predictions if pred['label'] != 0]
-    print(f"Found {len(positive_predictions)} positive predictions out of {len(predictions)} total")
-    return positive_predictions
 
 
 def load_ground_truth(ann_path: str) -> List[ActionSegment]:
@@ -476,12 +435,11 @@ def load_ground_truth(ann_path: str) -> List[ActionSegment]:
     return segments
 
 
-def load_predictions(predictions_path: str, class_names: list) -> List[ActionSegment]:
+def load_predictions(predictions_path: str, class_names: list, conf=None) -> List[ActionSegment]:
     with open(predictions_path, 'r') as f:
         predictions = json.load(f)
 
-    predictions = merge_predictions(predictions)
-    predictions = extract_positive_predictions(predictions)
+    predictions = postprocess_predictions(predictions, conf)
     segments = [ActionSegment(
         start_frame=pred['frame_range'][0],
         end_frame=pred['frame_range'][1],
@@ -491,14 +449,179 @@ def load_predictions(predictions_path: str, class_names: list) -> List[ActionSeg
     return segments
 
 
+def evaluate_frame_level(predictions: List[ActionSegment], ground_truth: List[ActionSegment], num_frames, classes):
+    """
+    Evaluate temporal localization at frame level (similar to pixel-wise evaluation)
+    
+    Args:
+        predictions: List of ActionSegment objects for predictions
+        ground_truth: List of ActionSegment objects for ground truth
+        num_frames: Total number of frames in the video
+        classes: List of action classes
+    
+    Returns:
+        Dictionary with precision, recall, and F1 scores for each class and overall
+    """
+    # Initialize frame-level arrays for each class
+    gt_frames = {c: np.zeros(num_frames, dtype=bool) for c in classes}
+    pred_frames = {c: np.zeros(num_frames, dtype=bool) for c in classes}
+    
+    # Fill ground truth frames
+    for segment in ground_truth:
+        class_name = segment.action_class
+        start = segment.start_frame
+        end = segment.end_frame
+        gt_frames[class_name][start:end] = True
+    
+    # Fill prediction frames
+    for segment in predictions:
+        class_name = segment.action_class
+        start = segment.start_frame
+        end = segment.end_frame
+        pred_frames[class_name][start:end] = True
+    
+    # Calculate metrics for each class
+    results = {}
+    for c in classes:
+        gt = gt_frames[c]
+        pred = pred_frames[c]
+        
+        # True positives, false positives, false negatives
+        tp = np.sum(gt & pred)
+        fp = np.sum(~gt & pred)
+        fn = np.sum(gt & ~pred)
+        
+        # Calculate precision, recall, F1
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        
+        results[c] = {
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'support': np.sum(gt)  # Number of ground truth frames
+        }
+    
+    # Calculate macro-averaged metrics
+    macro_precision = np.mean([results[c]['precision'] for c in classes])
+    macro_recall = np.mean([results[c]['recall'] for c in classes])
+    macro_f1 = np.mean([results[c]['f1'] for c in classes])
+    
+    # Calculate weighted-averaged metrics (weighted by support)
+    weights = np.array([results[c]['support'] for c in classes])
+    if np.sum(weights) > 0:  # Avoid division by zero
+        weights = weights / np.sum(weights)
+        weighted_precision = np.sum([results[c]['precision'] * weights[i] for i, c in enumerate(classes)])
+        weighted_recall = np.sum([results[c]['recall'] * weights[i] for i, c in enumerate(classes)])
+        weighted_f1 = np.sum([results[c]['f1'] * weights[i] for i, c in enumerate(classes)])
+    else:
+        weighted_precision = weighted_recall = weighted_f1 = 0
+    
+    # Add summary metrics
+    results['macro_avg'] = {
+        'precision': macro_precision,
+        'recall': macro_recall,
+        'f1': macro_f1
+    }
+    
+    results['weighted_avg'] = {
+        'precision': weighted_precision,
+        'recall': weighted_recall,
+        'f1': weighted_f1
+    }
+    
+    return results
+
+
+def evaluate_dataset_micro_average(all_predictions, all_ground_truth, video_lengths, classes):
+    """
+    Evaluate with micro-averaging across all videos (treating all frames as one pool)
+    
+    Args:
+        all_predictions: Dict mapping video_id to list of predictions
+        all_ground_truth: Dict mapping video_id to list of ground truth
+        video_lengths: Dict mapping video_id to number of frames
+        classes: List of action classes
+    
+    Returns:
+        Dictionary with micro-averaged precision, recall, and F1 scores
+    """
+    # Initialize global counters for each class
+    global_tp = {c: 0 for c in classes}
+    global_fp = {c: 0 for c in classes}
+    global_fn = {c: 0 for c in classes}
+    
+    # Process each video
+    for video_id in all_predictions.keys():
+        predictions = all_predictions[video_id]
+        ground_truth = all_ground_truth[video_id]
+        num_frames = video_lengths[video_id]
+        
+        # Initialize frame arrays for this video
+        gt_frames = {c: np.zeros(num_frames, dtype=bool) for c in classes}
+        pred_frames = {c: np.zeros(num_frames, dtype=bool) for c in classes}
+        
+        # Fill arrays as before
+        for segment in ground_truth:
+            class_name = segment.action_class
+            start = segment.start_frame
+            end = segment.end_frame
+            gt_frames[class_name][start:end] = True
+        
+        for segment in predictions:
+            class_name = segment.action_class
+            start = segment.start_frame
+            end = segment.end_frame
+            pred_frames[class_name][start:end] = True
+        
+        # Accumulate TP, FP, FN for each class
+        for c in classes:
+            gt = gt_frames[c]
+            pred = pred_frames[c]
+            
+            global_tp[c] += np.sum(gt & pred)
+            global_fp[c] += np.sum(~gt & pred)
+            global_fn[c] += np.sum(gt & ~pred)
+    
+    # Calculate metrics for each class
+    results = {}
+    for c in classes:
+        precision = global_tp[c] / (global_tp[c] + global_fp[c]) if (global_tp[c] + global_fp[c]) > 0 else 0
+        recall = global_tp[c] / (global_tp[c] + global_fn[c]) if (global_tp[c] + global_fn[c]) > 0 else 0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        
+        results[c] = {
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'support': global_tp[c] + global_fn[c]  # Total ground truth frames
+        }
+    
+    # Calculate overall metrics by weighting with global support
+    total_support = sum(results[c]['support'] for c in classes)
+    weighted_precision = sum(results[c]['precision'] * results[c]['support'] for c in classes) / total_support if total_support > 0 else 0
+    weighted_recall = sum(results[c]['recall'] * results[c]['support'] for c in classes) / total_support if total_support > 0 else 0
+    weighted_f1 = sum(results[c]['f1'] * results[c]['support'] for c in classes) / total_support if total_support > 0 else 0
+    
+    results['overall'] = {
+        'precision': weighted_precision,
+        'recall': weighted_recall,
+        'f1': weighted_f1,
+        'support': total_support
+    }
+    
+    return results
+
+
 if __name__ == "__main__":
-    class_names = ["idle", "Self-Grooming", "Head/Body Twitch"]
+    class_names = ["idle", "Self-Grooming", "Head/Body TWITCH"]
 
     video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
     ann_path = Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
     predictions_path = "results/predictions_MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26.json"
         
-    predictions = load_predictions(predictions_path, class_names)
+    predictions = load_predictions(predictions_path, class_names, conf=0.7)
     ground_truth = load_ground_truth(ann_path)
     print(f"Loaded {len(predictions)} predictions and {len(ground_truth)} ground truth segments")
 
@@ -506,11 +629,20 @@ if __name__ == "__main__":
     # shuffle(predictions)
     # shuffle(ground_truth)
 
-    from benchmark_visualizations import draw_segments
-    draw_segments(predictions, ground_truth, "Self-Grooming")
+    # from benchmark_visualizations import draw_segments
+    # draw_segments(predictions, ground_truth, "Self-Grooming")
+
+    # Evaluate frame-level metrics
+    from mouse_scripts.video_utils import get_total_frames
+    num_frames = get_total_frames(video_path)
+    print(f"Total frames in video: {num_frames}")
+    frame_level_results = evaluate_frame_level(predictions, ground_truth, num_frames, class_names[1:])
+    print("\n=== Frame Level Evaluation ===")
+    print(frame_level_results)
+    exit(0)
     
     # Create matcher and find matches
-    matcher = TemporalMatcher(iou_threshold=0.3)
+    matcher = TemporalMatcher(iou_threshold=0.5)
     matches, unmatched_preds, unmatched_gt = matcher.match_segments(predictions, ground_truth)
     
     print("=== Matching Results ===")

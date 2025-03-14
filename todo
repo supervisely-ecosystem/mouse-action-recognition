@@ -9,9 +9,13 @@ test mvd:
 - [x] make inference with detector (maximal bbox):
     Deploy custom rtdetr-v2 in separate docker -> session.inference_image_batch(frames)
 - [x] visualize Positive fragments (use Claude chat)
-- [ ] benchmark: inference -> predictions -> benchmark format
-- [ ] gt ann -> benchmark format
-- [ ] run benchmark
+- [x] benchmark: inference -> predictions -> benchmark format
+- [ ] re-run inference.
+- [ ] add new metrics (precision, recall, ap - are not enough)
+
+Evaluate:
+- [ ] Inference on full data.
+- [ ] Calculate metrics on full data.
 
 task:
 1. clone rt-detr. requirements.txt? the same docker? torch version?

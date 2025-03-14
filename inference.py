@@ -103,6 +103,158 @@ def parse_config(config_text):
     
     return config_dict
 
+
+def load_mvd(checkpoint):
+    experiment_name = checkpoint.split('/')[-3]
+    print(f"Experiment name: {experiment_name}")
+    checkpoint = Path(checkpoint)
+    assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
+    output_dir = checkpoint.parent.parent
+    
+    config_file = output_dir / "config.txt"
+    with open(config_file, 'r') as f:
+        config_text = f.read()
+    config = parse_config(config_text)
+
+    parser = get_parser()
+    # Get the allowed arguments from parser
+    allowed_args = {action.dest for action in parser._actions}
+    
+    # Filter config_dict to only include allowed arguments
+    valid_config = {k: v for k, v in config.items() if k in allowed_args}
+    
+    # Convert dict to list of args and parse
+    args_list = []
+    for key, value in valid_config.items():
+        if value is True or value is False:
+            continue
+        args_list.extend([f'--{key}', str(value)])
+    opts = parser.parse_args(args_list)
+    opts.finetune = checkpoint
+    opts.eval = True
+    print(opts)
+
+    # Build the model
+    model = build_model(opts)
+    model.eval()
+    return model, opts
+
+
+def load_detector(session_url="http://supervisely-utils-rtdetrv2-inference-1:8000"):
+    api = sly.Api()
+    detector = SessionJSON(api, session_url=session_url)
+    return detector
+
+
+def predict_video(video_path, model, detector, opts, stride):
+
+    # Read the video
+    dataset = MaximalBBoxSlidingWindow(
+        video_path,
+        detector=detector,
+        num_frames=opts.num_frames,
+        frame_sample_rate=opts.sampling_rate,
+        input_size=opts.input_size,
+        stride=stride,
+    )
+
+    data_loader = DataLoader(
+        dataset,
+        batch_size=16,
+        shuffle=False,
+        num_workers=0,
+        collate_fn=MaximalBBoxSlidingWindow.collate_fn,
+    )
+
+    # Inference
+    device = opts.device
+    print(f"Inference on {video_path}")
+    print(f"dataset length: {len(dataset)}")
+
+    predictions = []
+    for input, frame_indices, bboxes in tqdm(data_loader):
+        input = input.to(device)
+        with torch.cuda.amp.autocast():
+            with torch.no_grad():
+                output = model(input)
+        
+        # Get probabilities from the model output
+        probs = torch.softmax(output, dim=1)
+        for i, frame_idxs in enumerate(frame_indices):
+            prob = probs[i].cpu().numpy()
+            predicted_class = int(np.argmax(prob))
+            confidence = float(prob[predicted_class])
+            frame_range = [int(frame_idxs[0]), int(frame_idxs[-1]) + opts.sampling_rate]  # inclusive range
+            bbox = bboxes[i]
+            predictions.append({
+                'frame_range': frame_range,
+                'label': predicted_class,
+                'confidence': confidence,
+                'probabilities': prob.tolist(),
+                'maximal_bbox': bbox,
+            })
+
+    return predictions
+
+def merge_predictions(predictions: list):
+    """
+    Merge predictions based on frame ranges and labels.
+    """
+    predictions.sort(key=lambda x: x['frame_range'][0])
+    merged_predictions = []
+    for pred in predictions:
+        start_frame, end_frame = pred['frame_range']
+        label = pred['label']
+        confidence = pred['confidence']
+        bbox = pred.get('maximal_bbox')
+        
+        # If this is the first segment or it doesn't overlap with previous segment
+        if not merged_predictions or start_frame > merged_predictions[-1]['frame_range'][1] or label != merged_predictions[-1]['label']:
+            merged_predictions.append({
+                'frame_range': [start_frame, end_frame],
+                'label': label,
+                'confidence': confidence,
+                'bbox': bbox,
+            })
+        else:
+            # Extend the previous segment
+            merged_predictions[-1]['frame_range'][1] = max(merged_predictions[-1]['frame_range'][1], end_frame)
+            # Update confidence to the max of the two segments
+            merged_predictions[-1]['confidence'] = max(merged_predictions[-1]['confidence'], confidence)
+            # Update bbox if needed
+            if bbox is not None:
+                merged_predictions[-1]['bbox'] = get_maximal_bbox([merged_predictions[-1]['bbox'], bbox])
+    
+    print(f"Merged {len(predictions)} predictions into {len(merged_predictions)}")
+    return merged_predictions
+
+
+def extract_positive_predictions(predictions: list):
+    """
+    Extract positive predictions (label != 0) from the list of predictions.
+    """
+    positive_predictions = [pred for pred in predictions if pred['label'] != 0]
+    print(f"Found {len(positive_predictions)} positive predictions out of {len(predictions)} total")
+    return positive_predictions
+
+
+def threshold_predictions(predictions: list, conf: float = 0.5):
+    """
+    Filter predictions based on confidence threshold.
+    """
+    filtered_predictions = [pred for pred in predictions if pred['confidence'] >= conf]
+    print(f"Filtered {len(predictions) - len(filtered_predictions)} predictions below confidence {conf}")
+    return filtered_predictions
+
+
+def postprocess_predictions(predictions: list, conf=None):
+    predictions = merge_predictions(predictions)
+    predictions = extract_positive_predictions(predictions)
+    if conf is not None:
+        predictions = threshold_predictions(predictions, conf)
+    return predictions
+
+
 if __name__ == '__main__':
     checkpoint = "/root/volume/OUTPUT/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
     video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
