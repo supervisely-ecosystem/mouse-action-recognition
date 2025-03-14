@@ -31,7 +31,7 @@ if __name__ == "__main__":
     video_files = sorted([f for f in os.listdir(video_dir) if f.lower().endswith('.mp4')])
     print(f"Found {len(video_files)} video files in {video_dir}")
 
-    # Inference    
+    # Inference
     for video_file in tqdm(video_files):
         video_path = os.path.join(video_dir, video_file)
         ann_path = os.path.join(ann_dir, f"{video_file}.json")
@@ -49,3 +49,34 @@ if __name__ == "__main__":
         output_json_path = f"{predictions_dir}/{video_file}.json"
         with open(output_json_path, 'w') as f:
             json.dump(predictions, f, indent=4)
+
+    # Evaluate
+    conf = 0.6
+    all_predictions = {}
+    all_ground_truth = {}
+    video_lengths = {}
+    for video_file in tqdm(video_files):
+        video_path = os.path.join(video_dir, video_file)
+        ann_path = os.path.join(ann_dir, f"{video_file}.json")
+        predictions_path = os.path.join(predictions_dir, f"{video_file}.json")
+        predictions = load_predictions(predictions_path, CLASS_NAMES, conf=conf)
+        ground_truth = load_ground_truth(ann_path)
+        all_predictions[video_file] = predictions
+        all_ground_truth[video_file] = ground_truth
+        video_lengths[video_file] = get_total_frames(video_path)
+    
+    # Evaluate frame-level metrics
+    from src.benchmark.benchmark import evaluate_dataset_micro_average
+    results = evaluate_dataset_micro_average(
+        all_predictions,
+        all_ground_truth,
+        video_lengths,
+        CLASS_NAMES,
+    )
+    print("Evaluation Results:")
+    print(results)
+    
+    # Save evaluation results
+    evaluation_results_path = os.path.join(output_dir, "evaluation_results.json")
+    with open(evaluation_results_path, 'w') as f:
+        json.dump(results, f, indent=4)
