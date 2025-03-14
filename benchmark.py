@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Set, Optional, NamedTuple
-from scipy.optimize import linear_sum_assignment
 import numba
 from collections import defaultdict
 
@@ -461,48 +460,73 @@ def extract_positive_predictions(predictions: list):
     return positive_predictions
 
 
+def load_ground_truth(ann_path: str) -> List[ActionSegment]:
+    with open(ann_path, 'r') as f:
+        ann_data = json.load(f)
+    
+    segments = []
+    for segment in ann_data['tags']:
+        seg = ActionSegment(
+            start_frame=segment['frameRange'][0],
+            end_frame=segment['frameRange'][1],
+            action_class=segment['name'],
+        )
+        segments.append(seg)
+    
+    return segments
+
+
+def load_predictions(predictions_path: str, class_names: list) -> List[ActionSegment]:
+    with open(predictions_path, 'r') as f:
+        predictions = json.load(f)
+
+    predictions = merge_predictions(predictions)
+    predictions = extract_positive_predictions(predictions)
+    segments = [ActionSegment(
+        start_frame=pred['frame_range'][0],
+        end_frame=pred['frame_range'][1],
+        action_class=class_names[pred['label']],
+        confidence=pred['confidence'],
+    ) for pred in predictions]
+    return segments
+
+
 if __name__ == "__main__":
-    # Create sample data
-    ground_truth = [
-        ActionSegment(start_frame=10, end_frame=50, action_class="jump"),
-        ActionSegment(start_frame=70, end_frame=100, action_class="run"),
-        ActionSegment(start_frame=150, end_frame=200, action_class="jump"),
-        ActionSegment(start_frame=240, end_frame=280, action_class="fall")
-    ]
+    class_names = ["idle", "Self-Grooming", "Head/Body Twitch"]
 
     video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
     ann_path = Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
     predictions_path = "results/predictions_MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26.json"
-    
-    with open(predictions_path, 'r') as f:
-        predictions = json.load(f)
-    
-    # Merge predictions
-    predictions = merge_predictions(predictions)
-    predictions = extract_positive_predictions(predictions)
+        
+    predictions = load_predictions(predictions_path, class_names)
+    ground_truth = load_ground_truth(ann_path)
+    print(f"Loaded {len(predictions)} predictions and {len(ground_truth)} ground truth segments")
 
     # from random import shuffle
     # shuffle(predictions)
     # shuffle(ground_truth)
+
+    from benchmark_visualizations import draw_segments
+    draw_segments(predictions, ground_truth, "Self-Grooming")
     
     # Create matcher and find matches
-    matcher = TemporalMatcher(iou_threshold=0.5)
+    matcher = TemporalMatcher(iou_threshold=0.3)
     matches, unmatched_preds, unmatched_gt = matcher.match_segments(predictions, ground_truth)
     
     print("=== Matching Results ===")
     print(f"Found {len(matches)} matches at IoU threshold 0.5")
-    for match in matches:
-        pred = predictions[match.pred_idx]
-        gt = ground_truth[match.gt_idx]
-        print(f"Match: {pred} -> {gt} (IoU: {match.iou:.2f})")
+    # for match in matches:
+    #     pred = predictions[match.pred_idx]
+    #     gt = ground_truth[match.gt_idx]
+    #     print(f"Match: {pred} -> {gt} (IoU: {match.iou:.2f})")
     
-    print(f"\nUnmatched predictions: {len(unmatched_preds)}")
-    for idx in unmatched_preds:
-        print(f"  {predictions[idx]}")
+    # print(f"\nUnmatched predictions: {len(unmatched_preds)}")
+    # for idx in unmatched_preds:
+    #     print(f"  {predictions[idx]}")
     
-    print(f"\nUnmatched ground truth: {len(unmatched_gt)}")
-    for idx in unmatched_gt:
-        print(f"  {ground_truth[idx]}")
+    # print(f"\nUnmatched ground truth: {len(unmatched_gt)}")
+    # for idx in unmatched_gt:
+    #     print(f"  {ground_truth[idx]}")
     
     # Calculate metrics
     metrics = TemporalMetrics(iou_thresholds=[0.3, 0.5, 0.7])
