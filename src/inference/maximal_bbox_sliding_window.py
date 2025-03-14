@@ -1,5 +1,5 @@
 import torch
-from video_sliding_window import VideoSlidingWindow
+from src.inference.video_sliding_window import VideoSlidingWindow
 from maximal_crop_dataset import get_maximal_bbox, get_square_bbox
 from supervisely.nn.inference import SessionJSON
 from tempfile import TemporaryDirectory
@@ -33,10 +33,6 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
             x1, y1, x2, y2 = get_maximal_bbox_crop(figures, (w, h), padding=self.bbox_padding)
 
             buffer = buffer[:, y1:y2, x1:x2, :]
-            if window_idx == 0:
-                print(f"Maximal bounding box: {x1}, {y1}, {x2}, {y2}")
-                from my_utils import save_frames_as_video
-                save_frames_as_video(buffer, "tmp/maximal_bbox.mp4", fps=10)
             buffer = self.data_transform(buffer)
             yield buffer, frame_indices, (x1, y1, x2, y2)
     

@@ -4,7 +4,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from bbox_utils import get_maximal_bbox
+from src.bbox_utils import get_maximal_bbox
 
 def draw_timeline(predictions, fps, experiment_name=None, class_names=None, figsize=(15, 7), output_dir='results'):
     """

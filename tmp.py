@@ -11,7 +11,7 @@
 # print(buffer.shape)
 
 from maximal_crop_dataset import MaximalCropDataset
-from my_utils import save_frames_as_video, save_frames_as_image
+from src.my_utils import save_frames_as_video, save_frames_as_image
 
 ds = MaximalCropDataset(
     anno_path="data/mouse/val.csv",

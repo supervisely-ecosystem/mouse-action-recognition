@@ -60,7 +60,7 @@
             "name": "Inference",
             "type": "debugpy",
             "request": "launch",
-            "program": "inference.py",
+            "program": "run_inference.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {

@@ -1,27 +1,18 @@
-import argparse
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
-import json
-import os
 from pathlib import Path
-import decord
 import numpy as np
-from matplotlib import pyplot as plt
 
 from timm.models import create_model
 from tqdm import tqdm
 
-from datasets import build_dataset
-from engine_for_finetuning import train_one_epoch, validation_one_epoch, final_test, merge
-from video_sliding_window import VideoSlidingWindow
-from maximal_bbox_sliding_window import MaximalBBoxSlidingWindow
+from src.inference.video_sliding_window import VideoSlidingWindow
+from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow
 import utils
-from arg_parser import get_parser
-from inference_visualizations import draw_timeline, write_positive_fragments
+from src.inference.arg_parser import get_parser
+from src.bbox_utils import get_maximal_bbox
 import modeling_finetune  # register the new model
-import supervisely as sly
-from supervisely.nn.inference import SessionJSON
 
 
 def build_model(args):
@@ -105,6 +96,7 @@ def parse_config(config_text):
 
 
 def load_mvd(checkpoint):
+    checkpoint = str(checkpoint)
     experiment_name = checkpoint.split('/')[-3]
     print(f"Experiment name: {experiment_name}")
     checkpoint = Path(checkpoint)
@@ -141,12 +133,14 @@ def load_mvd(checkpoint):
 
 
 def load_detector(session_url="http://supervisely-utils-rtdetrv2-inference-1:8000"):
+    import supervisely as sly
+    from supervisely.nn.inference import SessionJSON
     api = sly.Api()
     detector = SessionJSON(api, session_url=session_url)
     return detector
 
 
-def predict_video(video_path, model, detector, opts, stride):
+def predict_video_with_detector(video_path, model, detector, opts, stride):
 
     # Read the video
     dataset = MaximalBBoxSlidingWindow(
@@ -253,123 +247,3 @@ def postprocess_predictions(predictions: list, conf=None):
     if conf is not None:
         predictions = threshold_predictions(predictions, conf)
     return predictions
-
-
-if __name__ == '__main__':
-    checkpoint = "/root/volume/OUTPUT/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
-    video_path = "/root/volume/data/mouse/HOM Mice F.2632_HOM 12 Days post tre/12 Days post tre/video/GL010560.MP4"
-    ann_path = Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
-    STRIDE = 8  # 8x2=16 of 32
-    detector_url = "http://supervisely-utils-rtdetrv2-inference-1:8000"
-    api = sly.Api()
-    detector = SessionJSON(api, session_url=detector_url)
-
-    experiment_name = checkpoint.split('/')[-3]
-    print(f"Experiment name: {experiment_name}")
-    checkpoint = Path(checkpoint)
-    assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
-    assert Path(video_path).exists(), f"Video {video_path} does not exist."
-    assert ann_path.exists(), f"Annotation {ann_path} does not exist."
-    output_dir = checkpoint.parent.parent
-    
-    config_file = output_dir / "config.txt"
-    with open(config_file, 'r') as f:
-        config_text = f.read()
-    config = parse_config(config_text)
-
-    parser = get_parser()
-    # Get the allowed arguments from parser
-    allowed_args = {action.dest for action in parser._actions}
-    
-    # Filter config_dict to only include allowed arguments
-    valid_config = {k: v for k, v in config.items() if k in allowed_args}
-    
-    # Convert dict to list of args and parse
-    args_list = []
-    for key, value in valid_config.items():
-        if value is True or value is False:
-            continue
-        args_list.extend([f'--{key}', str(value)])
-    opts = parser.parse_args(args_list)
-    opts.finetune = checkpoint
-    opts.eval = True
-    print(opts)
-
-    # Build the model
-    model = build_model(opts)
-    model.eval()
-    
-    # Read the video
-    dataset = MaximalBBoxSlidingWindow(
-        video_path,
-        detector=detector,
-        num_frames=opts.num_frames,
-        frame_sample_rate=opts.sampling_rate,
-        input_size=opts.input_size,
-        stride=STRIDE,
-    )
-
-    data_loader = DataLoader(
-        dataset,
-        batch_size=16,
-        shuffle=False,
-        num_workers=0,
-        collate_fn=MaximalBBoxSlidingWindow.collate_fn,
-    )
-
-    # Inference
-    device = opts.device
-    print(f"Inference on {video_path}")
-    print(f"dataset length: {len(dataset)}")
-
-    predictions = []
-    for input, frame_indices, bboxes in tqdm(data_loader):
-        input = input.to(device)
-        with torch.cuda.amp.autocast():
-            with torch.no_grad():
-                output = model(input)
-        
-        # Get probabilities from the model output
-        probs = torch.softmax(output, dim=1)
-        for i, frame_idxs in enumerate(frame_indices):
-            prob = probs[i].cpu().numpy()
-            predicted_class = int(np.argmax(prob))
-            confidence = float(prob[predicted_class])
-            frame_range = [int(frame_idxs[0]), int(frame_idxs[-1]) + opts.sampling_rate]  # inclusive range
-            bbox = bboxes[i]
-            predictions.append({
-                'frame_range': frame_range,
-                'label': predicted_class,
-                'confidence': confidence,
-                'probabilities': prob.tolist(),
-                'maximal_bbox': bbox,
-            })
-
-    # Save predictions to JSON file
-    os.makedirs("results", exist_ok=True)
-    output_json_path = f"results/predictions_{experiment_name}.json"
-    with open(output_json_path, 'w') as f:
-        json.dump(predictions, f, indent=4)
-        
-    class_names = ["idle", "Self-Grooming", "Head/Body Twitch"]
-    vr = decord.VideoReader(video_path)
-    fps = vr.get_avg_fps()    
-    draw_timeline(predictions, fps, experiment_name=experiment_name, class_names=class_names,
-                 figsize=(15, 7))
-    
-    # Display additional statistics
-    # Extract probabilities from the predictions list
-    all_probs = np.array([pred['probabilities'] for pred in predictions])
-    num_windows = len(predictions)
-    
-    # Get the most probable class for each window
-    dominant_classes = np.argmax(all_probs, axis=1)
-    class_counts = np.bincount(dominant_classes)
-    top_classes = np.argsort(-class_counts)[:5]
-    print("\nDominant classes in the video:")
-    for cls in top_classes:
-        if class_counts[cls] > 0:
-            percentage = (class_counts[cls] / num_windows) * 100
-            print(f"Class {cls}: {percentage:.2f}% ({class_counts[cls]} windows)")
-
-    write_positive_fragments(predictions, video_path, crop=True, output_dir="results")

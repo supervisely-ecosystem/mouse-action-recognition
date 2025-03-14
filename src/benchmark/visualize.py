@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 from pathlib import Path
 import numpy as np
-from benchmark import ActionSegment
+from src.benchmark.benchmark import ActionSegment
 
 
 class SegmentVisualizer:
