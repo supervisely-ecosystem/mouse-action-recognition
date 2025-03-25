@@ -7,9 +7,7 @@ import supervisely as sly
 from supervisely import VideoProject, OpenMode, VideoDataset, ProjectMeta, VideoAnnotation, ObjClass
 from tqdm import tqdm
 import numpy as np
-np.float = float
 
-from src.inference.visualize import draw_timeline, write_positive_fragments, draw_class_segments_timeline
 from src.inference.inference import predict_video_with_detector, load_mvd, load_detector, postprocess_predictions
 
 
@@ -39,9 +37,7 @@ if __name__ == '__main__':
     detector_container_port = os.getenv("RT_DETR_PORT").strip('"')
     detector_url = f"http://rt-detr:{detector_container_port}"
     
-    checkpoint = os.getenv("MVD_CHECKPOINT").strip('"')
-    experiment_name=Path(os.environ.get("MVD_ARTIFACTS_DIR")).name
-    checkpoint = str(Path("/models") / Path(experiment_name) / Path(checkpoint.lstrip("/")))
+    checkpoint = "/models/mvd"
     
     STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 
@@ -56,9 +52,6 @@ if __name__ == '__main__':
     output_meta = create_meta(class_names)
     output_project.set_meta(output_meta)
 
-    checkpoint = Path(checkpoint)
-    assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
-    
     # Load models
     model, opts = load_mvd(checkpoint)
     detector = load_detector(session_url=detector_url)
@@ -95,26 +88,3 @@ if __name__ == '__main__':
             output_json_path = video_results_dir / Path(f"predictions_{video_name}.json")
             with open(output_json_path, 'w') as f:
                 json.dump(predictions, f, indent=4)
-
-            draw_timeline(predictions_raw, fps, experiment_name=video_name, class_names=class_names, figsize=(15, 7), output_dir=video_results_dir)
-            try:
-                draw_class_segments_timeline(predictions_raw, fps, experiment_name=video_name, class_names=class_names, figsize=(15, 7), output_dir=video_results_dir)
-            except Exception as e:
-                traceback.print_exc()
-    
-            # Display additional statistics
-            # Extract probabilities from the predictions list
-            all_probs = np.array([pred['probabilities'] for pred in predictions_raw])
-            num_windows = len(predictions_raw)
-    
-            # Get the most probable class for each window
-            dominant_classes = np.argmax(all_probs, axis=1)
-            class_counts = np.bincount(dominant_classes)
-            top_classes = np.argsort(-class_counts)[:5]
-            print("\nDominant classes in the video:")
-            for cls in top_classes:
-                if class_counts[cls] > 0:
-                    percentage = (class_counts[cls] / num_windows) * 100
-                    print(f"Class {cls}: {percentage:.2f}% ({class_counts[cls]} windows)")
-
-            write_positive_fragments(predictions_raw, video_path, crop=True, output_dir=video_results_dir)

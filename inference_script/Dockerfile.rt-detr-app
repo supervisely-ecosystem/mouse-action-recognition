@@ -1,18 +1,8 @@
-ARG RT_DETR_BASE_IMAGE
-FROM ${RT_DETR_BASE_IMAGE}
+ARG RT_DETR_IMAGE
+FROM ${RT_DETR_IMAGE}
 
 WORKDIR /app
 
-ENV REPO_URL=https://github.com/supervisely-ecosystem/RT-DETRv2.git
-ARG RT_DETR_VERSION
-ENV RT_DETR_VERSION=${RT_DETR_VERSION:-}
-
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* && \
-    if [ -z "$RT_DETR_VERSION" ]; then \
-        git clone --depth 1 ${REPO_URL} . && \
-        echo "Cloned latest commit from ${REPO_URL}"; \
-    else \
-        git clone --depth 1 --branch ${RT_DETR_VERSION} ${REPO_URL} . && \
-        echo "Cloned version ${RT_DETR_VERSION} from ${REPO_URL}"; \
-    fi && \
+    git clone https://github.com/supervisely-ecosystem/RT-DETRv2.git . && \
     rm -rf .git
