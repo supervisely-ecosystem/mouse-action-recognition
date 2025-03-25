@@ -3,8 +3,11 @@ from pathlib import Path
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from matplotlib.colors import to_rgba
 from tqdm import tqdm
 from src.bbox_utils import get_maximal_bbox
+
 
 def draw_timeline(predictions, fps, experiment_name=None, class_names=None, figsize=(15, 7), output_dir='results'):
     """
@@ -57,6 +60,155 @@ def draw_timeline(predictions, fps, experiment_name=None, class_names=None, figs
     os.makedirs(output_dir, exist_ok=True)
     vis_path = f'{output_dir}/timeline_{experiment_name or "test"}.png'
     plt.savefig(vis_path)
+    print(f"Visualization saved to {vis_path}")
+    return fig
+
+
+def draw_class_segments_timeline(predictions, fps, experiment_name=None, class_names=None, 
+                                figsize=(15, 7), output_dir='results', min_segment_duration=0.0):
+    """
+    Draw a timeline of segments showing the most probable class at each time point.
+    
+    Args:
+        predictions: List of dictionaries containing predictions for each window
+        fps: Frames per second of the video
+        experiment_name: Name of the experiment for saving the visualization
+        class_names: Optional list of class names for the y-axis
+        figsize: Figure size (width, height) in inches
+        output_dir: Directory to save the visualization
+        min_segment_duration: Minimum duration (in seconds) for a segment to be displayed
+        
+    Returns:
+        The matplotlib figure
+    """
+    # Extract time and most probable class information
+    times = []
+    num_classes = len(predictions[0]['probabilities'])
+    
+    all_probs = np.zeros((len(predictions), num_classes))
+    
+    for i, pred in enumerate(predictions):
+        # Use midpoint of frame range as the time point
+        frame_range = pred['frame_range']
+        mid_frame = (frame_range[0] + frame_range[1]) / 2
+        time_sec = mid_frame / fps
+        times.append(time_sec)
+        
+        # Extract probabilities for each class
+        probabilities = pred['probabilities']
+        all_probs[i, :] = probabilities
+    
+    # Find the most probable class at each time point
+    max_class_indices = np.argmax(all_probs, axis=1)
+    
+    # Set up the visualization
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Generate color map based on the number of classes
+    cmap = plt.cm.get_cmap('tab10', num_classes)
+    
+    # Find segments of continuous class predictions
+    segments = []
+    current_class = max_class_indices[0]
+    segment_start = times[0]
+    segment_confidence = all_probs[0, current_class]
+    confidences = [segment_confidence]
+    
+    # Process each time point
+    for i in range(1, len(times)):
+        if max_class_indices[i] != current_class:
+            # End of segment
+            segment_end = times[i]
+            segment_duration = segment_end - segment_start
+            avg_confidence = np.mean(confidences)
+            
+            # Only add segment if it meets minimum duration
+            if segment_duration >= min_segment_duration:
+                segments.append({
+                    'class': current_class,
+                    'start_time': segment_start,
+                    'end_time': segment_end,
+                    'confidence': avg_confidence
+                })
+            
+            # Start new segment
+            current_class = max_class_indices[i]
+            segment_start = times[i]
+            confidences = [all_probs[i, current_class]]
+        else:
+            # Continue current segment
+            confidences.append(all_probs[i, current_class])
+    
+    # Add the last segment
+    segment_end = times[-1]
+    segment_duration = segment_end - segment_start
+    avg_confidence = np.mean(confidences)
+    
+    if segment_duration >= min_segment_duration:
+        segments.append({
+            'class': current_class,
+            'start_time': segment_start,
+            'end_time': segment_end,
+            'confidence': avg_confidence
+        })
+    
+    # Draw segments
+    for segment in segments:
+        class_idx = segment['class']
+        color = cmap(class_idx)
+        
+        # Use transparency to represent confidence
+        alpha = max(0.3, min(0.9, segment['confidence']))
+        segment_color = to_rgba(color, alpha)
+        
+        # Create a rectangle for the segment
+        rect = patches.Rectangle(
+            (segment['start_time'], class_idx - 0.4),
+            segment['end_time'] - segment['start_time'],
+            0.8,
+            linewidth=1,
+            edgecolor=color,
+            facecolor=segment_color,
+            label=class_names[class_idx] if class_names else f"Class {class_idx}"
+        )
+        ax.add_patch(rect)
+    
+    # Set up the axes
+    if class_names:
+        plt.yticks(range(num_classes), class_names)
+    else:
+        plt.yticks(range(num_classes), [f"Class {i}" for i in range(num_classes)])
+    
+    # Set axis limits
+    ax.set_xlim(min(times), max(times))
+    ax.set_ylim(-0.5, num_classes - 0.5)
+    
+    # Add labels and title
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('Class')
+    plt.title('Most Probable Class Segments Over Time')
+    plt.grid(True, alpha=0.2, linestyle='--')
+    
+    # Handle legend - get unique class entries
+    handles, labels = [], []
+    for class_idx in range(num_classes):
+        if class_idx in [segment['class'] for segment in segments]:
+            patch = patches.Patch(
+                color=cmap(class_idx),
+                label=class_names[class_idx] if class_names else f"Class {class_idx}"
+            )
+            handles.append(patch)
+            labels.append(class_names[class_idx] if class_names else f"Class {class_idx}")
+    
+    plt.legend(handles=handles, labels=labels, loc='upper center', 
+               bbox_to_anchor=(0.5, -0.1), ncol=min(5, len(handles)))
+    
+    plt.tight_layout()
+    
+    # Save the visualization
+    os.makedirs(output_dir, exist_ok=True)
+    vis_path = f'{output_dir}/class_segments_{experiment_name or "test"}.png'
+    plt.savefig(vis_path, bbox_inches='tight')
     print(f"Visualization saved to {vis_path}")
     return fig
 
