@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import os
 
+import numpy as np
 from supervisely import VideoProject, OpenMode, VideoDataset
 
 from src.benchmark.benchmark import (
@@ -27,7 +28,7 @@ if __name__ == "__main__":
     for dataset in project.datasets:
         dataset: VideoDataset
         for video_name, video_path, ann_path in dataset.items():
-            predictions_path = output_predictions_path / Path(f"predictions_{video_name}.json")
+            predictions_path = output_predictions_path / Path(dataset.path) / Path(f"predictions_{video_name}.json")
             benchmark_results_path = Path(benchmark_dir) / Path(input_project_name) / Path(dataset.path) / Path(f"{video_name}.json")
 
             predictions = load_predictions(predictions_path, class_names, conf=0.7)
@@ -42,7 +43,10 @@ if __name__ == "__main__":
             print("\n=== Frame Level Evaluation ===")
             print(frame_level_results)
     
-            data = frame_level_results
+            data = {
+                cls_name: {k:int(v) if isinstance(v, np.int64) else v for k, v in metrics.items()}
+                for cls_name, metrics in frame_level_results.items()
+            }
 
             os.makedirs(str(benchmark_results_path.parent), exist_ok=True)
             json.dump(data, open(benchmark_results_path, "w"), indent=4)
