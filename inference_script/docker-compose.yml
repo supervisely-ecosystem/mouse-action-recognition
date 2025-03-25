@@ -1,0 +1,82 @@
+x-default-env: &default-env
+  RT_DETR_BASE_IMAGE: ${RT_DETR_BASE_IMAGE:-supervisely/rt-detrv2:1.0.11}
+  RT_DETR_APP_IMAGE: ${RT_DETR_APP_IMAGE:-rt-detrv2-app:1.0.15}
+  RT_DETR_PORT: ${RT_DETR_PORT:-8000}
+
+  MVD_IMAGE: ${MVD_IMAGE:-supervisely-utils-mvd-cu118-py38-torch-1.11}
+
+  EXPERIMENT_NAME: ${EXPERIMENT_NAME:-unknown_experiment}
+
+services:
+  rt-detr:
+    image: ${RT_DETR_APP_IMAGE}
+    build:
+      context: .
+      dockerfile: Dockerfile.rt-detr-app
+      args:
+        RT_DETR_BASE_IMAGE: ${RT_DETR_BASE_IMAGE}
+    container_name: supervisely-utils-rtdetrv2-inference-1
+    runtime: nvidia
+    environment:
+      <<: *default-env
+      PYTHONPATH: /app
+      RT_DETR_CHECKPOINT: ${RT_DETR_CHECKPOINT}
+      RT_DETR_PORT: ${RT_DETR_PORT}
+      LOG_LEVEL: WARNING
+    env_file:
+      - .env
+    volumes:
+      - ${RT_DETR_ARTIFACTS_DIR}:/models
+    working_dir: /app
+    ports:
+      - ${RT_DETR_PORT}:8000
+    networks:
+      - inference_network
+    command: python3 supervisely_integration/serve/main.py deploy --model /models/${RT_DETR_CHECKPOINT}
+
+  mvd:
+    image: ${MVD_IMAGE}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    runtime: nvidia
+    environment:
+      <<: *default-env
+      PYTHONPATH: /app
+    env_file:
+      - .env
+    volumes:
+      - ..:/app
+      - ${INPUT}:/input
+      - ${MVD_ARTIFACTS_DIR}:/models/${EXPERIMENT_NAME}
+      - ${OUTPUT}:/output
+    working_dir: /app
+    networks:
+      - inference_network
+    command: python3 /app/inference_script/run_inference.py
+    depends_on:
+      - rt-detr
+      
+  benchmark:
+    image: ${MVD_IMAGE}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    runtime: nvidia
+    profiles:
+      - benchmark
+    environment:
+      <<: *default-env
+      PYTHONPATH: /app
+    env_file:
+      - .env
+    volumes:
+      - ..:/app
+      - ${INPUT}:/input
+      - ${OUTPUT}:/output
+    working_dir: /app
+    command: python3 /app/inference_script/run_benchmark.py
+
+networks:
+  inference_network:
+    name: mvd-rt-detr-inference_network
