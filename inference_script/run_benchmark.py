@@ -63,7 +63,7 @@ def get_per_video_table_data(metrics: dict):
     content = [
         {
             "id": video_path,
-            "items": [video_path] + [f"{video_metrics["macro_avg"][metric_name]:.4f}" if isinstance(video_metrics["macro_avg"][metric_name], float) else video_metrics[metric_name] for metric_name in metric_names],
+            "items": [video_path] + [f"{video_metrics["weighted_avg"][metric_name]:.4f}" if isinstance(video_metrics["weighted_avg"][metric_name], float) else video_metrics[metric_name] for metric_name in metric_names],
         } for video_path, video_metrics in metrics.items() if video_path != "aggregated"
     ]
     table_data = {
