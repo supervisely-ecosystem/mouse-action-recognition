@@ -137,4 +137,4 @@ if __name__ == '__main__':
         output_meta = create_meta(class_names)
         output_project.set_meta(output_meta)
         output_dataset = output_project.create_dataset(input_video_name)
-        inference_video(input_path, output_dir, output_dataset, output_meta, class_names, model, opts, detector, input_video_name)
+        inference_video(input_path, output_predictions_path, output_dataset, output_meta, class_names, model, opts, detector, input_video_name)

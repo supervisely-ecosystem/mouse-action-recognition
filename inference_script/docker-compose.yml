@@ -41,3 +41,5 @@ services:
       - ${OUTPUT}:/output
     working_dir: /app
     command: python3 /app/inference_script/run_benchmark.py
+    networks:
+      - benchmark_net

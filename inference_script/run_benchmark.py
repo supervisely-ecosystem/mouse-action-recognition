@@ -15,6 +15,7 @@ from mouse_scripts.video_utils import get_total_frames
 
 if __name__ == "__main__":
     class_names = ["idle", "Self-Grooming", "Head/Body TWITCH"]
+    conf = 0.6
 
     gt_path = "/gt"
     gt_dir_name = Path(os.environ.get('GT')).name
@@ -24,7 +25,11 @@ if __name__ == "__main__":
 
     output_path = "/output"
     benchmark_dir = Path(output_path) / Path("benchmark")
-    
+
+    all_predictions = {}
+    all_ground_truth = {}
+    video_lengths = {}
+
     for dataset in project.datasets:
         dataset: VideoDataset
         for video_name, video_path, ann_path in dataset.items():
@@ -34,7 +39,7 @@ if __name__ == "__main__":
 
             benchmark_results_path = Path(benchmark_dir) / Path(gt_dir_name) / Path(dataset.path) / Path(f"{video_name}.json")
 
-            predictions = load_predictions(predictions_path, class_names, conf=0.7)
+            predictions = load_predictions(predictions_path, class_names, conf=conf)
             ground_truth = load_ground_truth(ann_path)
             
             print(f"Loaded {len(predictions)} predictions and {len(ground_truth)} ground truth segments")
@@ -55,3 +60,29 @@ if __name__ == "__main__":
             json.dump(data, open(benchmark_results_path, "w"), indent=4)
 
             print(f"\nMetrcis data for {video_name} saved to {benchmark_results_path}\n")
+
+            # For aggregated metrics
+            all_predictions[video_path] = predictions
+            all_ground_truth[video_path] = ground_truth
+            video_lengths[video_path] = num_frames
+
+    # Evaluate frame-level metrics
+    from src.benchmark.benchmark import evaluate_dataset_micro_average
+    results = evaluate_dataset_micro_average(
+        all_predictions,
+        all_ground_truth,
+        video_lengths,
+        class_names,
+    )
+    results = {
+        cls_name: {k:int(v) if isinstance(v, np.int64) else v for k, v in metrics.items()}
+        for cls_name, metrics in results.items()
+    }
+    print("Evaluation Results:")
+    print(results)
+    
+    # Save evaluation results
+    evaluation_results_path = os.path.join(str(benchmark_dir), "aggregated_results.json")
+    with open(evaluation_results_path, 'w') as f:
+        json.dump(results, f, indent=4)
+    print(f"\Aggregated metrics saved to {benchmark_results_path}\n")
