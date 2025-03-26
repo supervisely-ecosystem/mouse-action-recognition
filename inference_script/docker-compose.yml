@@ -1,25 +1,16 @@
 services:
   rt-detr:
-    build:
-      context: .
-      dockerfile: Dockerfile.rt-detr-app
-      args:
-        RT_DETR_IMAGE: supervisely/rt-detrv2:1.0.11
-    # container_name: supervisely-utils-rtdetrv2-inference-1
+    image: supervisely/mvd:rt-detrv2
     runtime: nvidia
     environment:
       PYTHONPATH: /app
     env_file:
       - .env
-    volumes:
-      - ${RT_DETR_MODEL}:/models/rtdetr
-    working_dir: /app
     ports:
       - ${RT_DETR_PORT}:8000
-    command: python3 supervisely_integration/serve/main.py deploy --model /models/rtdetr/checkpoints/best.pth
 
   mvd:
-    image: supervisely/mvd:inference-0.0.1
+    image: supervisely/mvd:inference
     runtime: nvidia
     environment:
       PYTHONPATH: /app
@@ -27,7 +18,6 @@ services:
       - .env
     volumes:
       - ..:/app
-      - ${MVD_MODEL}:/models/mvd
       - ${INPUT}:/input
       - ${OUTPUT}:/output
     working_dir: /app
@@ -36,7 +26,7 @@ services:
       - rt-detr
       
   benchmark:
-    image: supervisely/mvd:inference-0.0.1
+    image: supervisely/mvd:inference
     runtime: nvidia
     profiles:
       - benchmark
@@ -46,7 +36,8 @@ services:
       - .env
     volumes:
       - ..:/app
-      - ${INPUT}:/input
+      - ${GT}:/gt
+      - ${PRED}:/pred
       - ${OUTPUT}:/output
     working_dir: /app
     command: python3 /app/inference_script/run_benchmark.py

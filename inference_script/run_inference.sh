@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Starting services..."
-docker compose -f inference_script/docker-compose.yml up -d
+docker compose -f inference_script/docker-compose.yml up
 
 MVD_CONTAINER=$(docker ps -q -f name=mvd)
 

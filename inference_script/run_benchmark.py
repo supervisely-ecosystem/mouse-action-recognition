@@ -16,20 +16,23 @@ from mouse_scripts.video_utils import get_total_frames
 if __name__ == "__main__":
     class_names = ["idle", "Self-Grooming", "Head/Body TWITCH"]
 
-    input_path = "/input"
-    input_project_name = Path(os.environ.get('INPUT')).name
-    project = VideoProject(input_path, mode=OpenMode.READ)
-    input_project_name = Path(os.environ.get('INPUT')).name
+    gt_path = "/gt"
+    gt_dir_name = Path(os.environ.get('GT')).name
+    project = VideoProject(gt_path, mode=OpenMode.READ)
+
+    pred_path = "/pred"
 
     output_path = "/output"
-    output_predictions_path = Path(output_path) / Path(input_project_name) / Path("predictions")
     benchmark_dir = Path(output_path) / Path("benchmark")
     
     for dataset in project.datasets:
         dataset: VideoDataset
         for video_name, video_path, ann_path in dataset.items():
-            predictions_path = output_predictions_path / Path(dataset.path) / Path(f"predictions_{video_name}.json")
-            benchmark_results_path = Path(benchmark_dir) / Path(input_project_name) / Path(dataset.path) / Path(f"{video_name}.json")
+            predictions_path = Path(pred_path) / Path(dataset.path) / Path(f"{video_name}.json")
+            if not predictions_path.exists():
+                continue
+
+            benchmark_results_path = Path(benchmark_dir) / Path(gt_dir_name) / Path(dataset.path) / Path(f"{video_name}.json")
 
             predictions = load_predictions(predictions_path, class_names, conf=0.7)
             ground_truth = load_ground_truth(ann_path)

@@ -3,12 +3,14 @@ import json
 import os
 
 import traceback
+from typing import List
 import supervisely as sly
-from supervisely import VideoProject, OpenMode, VideoDataset, ProjectMeta, VideoAnnotation, ObjClass
-from tqdm import tqdm
-import numpy as np
+from supervisely import VideoProject, OpenMode, VideoDataset, ProjectMeta, VideoAnnotation
 
 from src.inference.inference import predict_video_with_detector, load_mvd, load_detector, postprocess_predictions
+
+
+STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 
 
 def create_meta(class_names) -> ProjectMeta:
@@ -31,60 +33,105 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
     ann = VideoAnnotation(img_size=frame_size, frames_count=frames_count, tags=sly.VideoTagCollection(tags))
     return ann
 
+def inference_video(video_path, output_predictions_path, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector):
+    video_name = Path(video_path).name
+    video_video_prediction_path = output_predictions_path / Path(f"{video_name}.json")
+    os.makedirs(str(output_predictions_path), exist_ok=True)
+    # Predict
+    predictions_raw = predict_video_with_detector(
+        video_path,
+        model,
+        detector,
+        opts,
+        stride=STRIDE
+    )
+    predictions = postprocess_predictions(predictions_raw)
+
+    # Visualize predictions
+    import decord  # WARNING: if import decord in top, it will crash with 'Segmentation fault (core dumped)'
+    vr = decord.VideoReader(video_path)
+    frames_count = len(vr)
+    frame_size = (vr[0].shape[0], vr[0].shape[1]) # h, w
+    try:
+        output_dataset.add_item_file(video_name, None, ann_from_predictions(frame_size, frames_count, predictions, output_meta, class_names))
+    except Exception:
+        print("Unable to save annotation in Supervisely format")
+        traceback.print_exc()
+
+    # Save predictions to JSON file
+    with open(video_video_prediction_path, 'w') as f:
+        json.dump(predictions, f, indent=4)
+
+
+def inference_project(project: VideoProject, project_name: str, output_dir: str, class_names: List[str], model, opts, detector):
+    output_predictions_path = Path(output_dir) / Path(project_name) / Path("predictions")
+    output_project_path = Path(output_dir) / Path(project_name) / Path(f"SLY_format/{project_name}_NN")
+    output_project = VideoProject(str(output_project_path), mode=OpenMode.CREATE)
+    output_meta = create_meta(class_names)
+    output_project.set_meta(output_meta)
+
+    for dataset in project.datasets:
+        dataset: VideoDataset
+        output_dataset: VideoDataset = output_project.create_dataset(dataset.name, ds_path=dataset.path)
+        ds_predictions_path = output_predictions_path / Path(dataset.path)
+        for _, video_path, _ in dataset.items():
+            full_video_path = Path(project.parent_dir) / Path(project.name) / Path(dataset.path) / Path(video_path)
+            inference_video(str(full_video_path), ds_predictions_path, output_dataset, output_meta, class_names, model, opts, detector)
+
+
+def inference_directory(input_directory: str, project_name: str, output_dir: str, class_names: List[str], model, opts, detector):
+    output_predictions_path = Path(output_dir) / Path(project_name) / Path("predictions")
+    output_project_path = Path(output_dir) / Path(project_name) / Path(f"SLY_format/{project_name}_NN")
+    output_project = VideoProject(str(output_project_path), mode=OpenMode.CREATE)
+    output_meta = create_meta(class_names)
+    output_project.set_meta(output_meta)
+    output_dataset = output_project.create_dataset(project_name)
+
+    for video_path in os.listdir(input_directory):
+        if os.path.isfile(video_path):
+            inference_video(video_path, output_predictions_path, output_dataset, output_meta, class_names, model, opts, detector)
+
+
 if __name__ == '__main__':
     class_names = ["idle", "Self-Grooming", "Head/Body TWITCH"]
 
     detector_container_port = os.getenv("RT_DETR_PORT").strip('"')
     detector_url = f"http://rt-detr:{detector_container_port}"
     
-    checkpoint = "/models/mvd"
-    
-    STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
-
+    checkpoint = "/models/mvd/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
     input_path = "/input"
-    input_project_name = Path(os.environ.get('INPUT')).name
-    project = VideoProject(input_path, mode=OpenMode.READ)
+    output_dir = "/output"
+    
+    input_dir_name = Path(os.environ.get('INPUT')).name
 
-    output_path = "/output"
-    output_predictions_path = Path(output_path) / Path(input_project_name) / Path("predictions")
-    output_project_path = Path(output_path) / Path(input_project_name) / Path(f"predictions_SLY_format/{input_project_name}")
-    output_project = VideoProject(str(output_project_path), mode=OpenMode.CREATE)
-    output_meta = create_meta(class_names)
-    output_project.set_meta(output_meta)
+    is_directory = False
+    is_project = False
+    project = None
+    if os.path.isdir(input_path):
+        is_directory = True
+        try:
+            project = VideoProject(input_path, mode=OpenMode.READ)
+            is_project = True
+        except:
+            pass
 
     # Load models
     model, opts = load_mvd(checkpoint)
     detector = load_detector(session_url=detector_url)
 
-    for dataset in project.datasets:
-        dataset: VideoDataset
-        output_dataset: VideoDataset = output_project.create_dataset(dataset.name, ds_path=dataset.path)
-        for video_name, video_path, ann_path in dataset.items():
-            video_results_dir = output_predictions_path / Path(dataset.path)
-            # Predict
-            predictions_raw = predict_video_with_detector(
-                video_path,
-                model,
-                detector,
-                opts,
-                stride=STRIDE
-            )
-            predictions = postprocess_predictions(predictions_raw)
-
-            # Visualize predictions
-            import decord  # WARNING: if import decord in top, it will crash with 'Segmentation fault (core dumped)'
-            vr = decord.VideoReader(video_path)
-            fps = vr.get_avg_fps()
-            frames_count = len(vr)
-            frame_size = (vr[0].shape[0], vr[0].shape[1]) # h, w
-            try:
-                output_dataset.add_item_file(video_name, None, ann_from_predictions(frame_size, frames_count, predictions, output_meta, class_names))
-            except Exception:
-                print("Unable to save annotation in Supervisely format")
-                traceback.print_exc()
-
-            # Save predictions to JSON file
-            os.makedirs(video_results_dir, exist_ok=True)
-            output_json_path = video_results_dir / Path(f"predictions_{video_name}.json")
-            with open(output_json_path, 'w') as f:
-                json.dump(predictions, f, indent=4)
+    if is_project:
+        print("Predicting project")
+        inference_project(project, input_dir_name, output_dir, class_names, model, opts, detector)
+    elif is_directory:
+        print("Predicting directory")
+        inference_directory(input_path, input_dir_name, output_dir, class_names, model, opts, detector)
+    else:
+        print("Predicting video")
+        input_video_name = input_dir_name
+        output_predictions_path = Path(output_dir) / Path(input_video_name) / Path("predictions")
+        output_project_path = Path(output_dir) / Path(input_video_name) / Path(f"SLY_format/{input_video_name}_NN")
+        output_project = VideoProject(str(output_project_path), mode=OpenMode.CREATE)
+        output_meta = create_meta(class_names)
+        output_project.set_meta(output_meta)
+        output_dataset = output_project.create_dataset(input_video_name)
+        inference_video(input_path, output_dir, output_dataset, output_meta, class_names, model, opts, detector)
