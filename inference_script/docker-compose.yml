@@ -6,8 +6,6 @@ services:
       PYTHONPATH: /app
     env_file:
       - .env
-    ports:
-      - ${RT_DETR_PORT}:8000
 
   mvd:
     image: supervisely/mvd:inference
@@ -24,22 +22,3 @@ services:
     command: python3 /app/inference_script/run_inference.py
     depends_on:
       - rt-detr
-      
-  benchmark:
-    image: supervisely/mvd:inference
-    runtime: nvidia
-    profiles:
-      - benchmark
-    environment:
-      PYTHONPATH: /app
-    env_file:
-      - .env
-    volumes:
-      - ..:/app
-      - ${GT}:/gt
-      - ${PRED}:/pred
-      - ${OUTPUT}:/output
-    working_dir: /app
-    command: python3 /app/inference_script/run_benchmark.py
-    networks:
-      - benchmark_net

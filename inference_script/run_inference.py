@@ -13,6 +13,11 @@ from src.inference.inference import predict_video_with_detector, load_mvd, load_
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 
 
+os.environ["SERVER_ADDRESS"] = ""
+os.environ["API_TOKEN"] = ""
+os.environ["TEAM_ID"] = "1"
+
+
 def create_meta(class_names) -> ProjectMeta:
     tag_metas = [sly.TagMeta(class_name, sly.TagValueType.NONE) for class_name in class_names] + [sly.TagMeta("confidence", sly.TagValueType.ANY_NUMBER)]
     meta = ProjectMeta(tag_metas=tag_metas)
@@ -67,7 +72,7 @@ def inference_video(video_path, output_predictions_path, output_dataset: VideoDa
 
 def inference_project(project: VideoProject, project_name: str, output_dir: str, class_names: List[str], model, opts, detector):
     output_predictions_path = Path(output_dir) / Path(project_name) / Path("predictions")
-    output_project_path = Path(output_dir) / Path(project_name) / Path(f"SLY_format/{project_name}_NN")
+    output_project_path = Path(output_dir) / Path(project_name) / Path("SLY_project")
     output_project = VideoProject(str(output_project_path), mode=OpenMode.CREATE)
     output_meta = create_meta(class_names)
     output_project.set_meta(output_meta)
@@ -83,11 +88,11 @@ def inference_project(project: VideoProject, project_name: str, output_dir: str,
 
 def inference_directory(input_directory: str, project_name: str, output_dir: str, class_names: List[str], model, opts, detector):
     output_predictions_path = Path(output_dir) / Path(project_name) / Path("predictions")
-    output_project_path = Path(output_dir) / Path(project_name) / Path(f"SLY_format/{project_name}_NN")
+    output_project_path = Path(output_dir) / Path(project_name) / Path("SLY_project")
     output_project = VideoProject(str(output_project_path), mode=OpenMode.CREATE)
     output_meta = create_meta(class_names)
     output_project.set_meta(output_meta)
-    output_dataset = output_project.create_dataset(project_name)
+    output_dataset = output_project.create_dataset("predictions")
 
     for video_path in os.listdir(input_directory):
         full_video_path = str(Path(input_directory) / Path(video_path))
@@ -98,7 +103,7 @@ def inference_directory(input_directory: str, project_name: str, output_dir: str
 if __name__ == '__main__':
     class_names = ["idle", "Self-Grooming", "Head/Body TWITCH"]
 
-    detector_container_port = os.getenv("RT_DETR_PORT").strip('"')
+    detector_container_port = 8000
     detector_url = f"http://rt-detr:{detector_container_port}"
     
     checkpoint = "/models/mvd/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
@@ -132,9 +137,9 @@ if __name__ == '__main__':
         print("Predicting video")
         input_video_name = input_dir_name
         output_predictions_path = Path(output_dir) / Path(input_video_name) / Path("predictions")
-        output_project_path = Path(output_dir) / Path(input_video_name) / Path(f"SLY_format/{input_video_name}_NN")
+        output_project_path = Path(output_dir) / Path(input_video_name) / Path("SLY_project")
         output_project = VideoProject(str(output_project_path), mode=OpenMode.CREATE)
         output_meta = create_meta(class_names)
         output_project.set_meta(output_meta)
-        output_dataset = output_project.create_dataset(input_video_name)
+        output_dataset = output_project.create_dataset("predictions")
         inference_video(input_path, output_predictions_path, output_dataset, output_meta, class_names, model, opts, detector, input_video_name)
