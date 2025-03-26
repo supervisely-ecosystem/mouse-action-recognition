@@ -33,9 +33,10 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
     ann = VideoAnnotation(img_size=frame_size, frames_count=frames_count, tags=sly.VideoTagCollection(tags))
     return ann
 
-def inference_video(video_path, output_predictions_path, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector):
-    video_name = Path(video_path).name
-    video_video_prediction_path = output_predictions_path / Path(f"{video_name}.json")
+def inference_video(video_path, output_predictions_path, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector, video_name=None):
+    if video_name is None:
+        video_name = Path(video_path).name
+    video_prediction_path = output_predictions_path / Path(f"{video_name}.json")
     os.makedirs(str(output_predictions_path), exist_ok=True)
     # Predict
     predictions_raw = predict_video_with_detector(
@@ -59,8 +60,9 @@ def inference_video(video_path, output_predictions_path, output_dataset: VideoDa
         traceback.print_exc()
 
     # Save predictions to JSON file
-    with open(video_video_prediction_path, 'w') as f:
+    with open(video_prediction_path, 'w') as f:
         json.dump(predictions, f, indent=4)
+    print(f"Saved predictions to {video_prediction_path}")
 
 
 def inference_project(project: VideoProject, project_name: str, output_dir: str, class_names: List[str], model, opts, detector):
@@ -88,8 +90,9 @@ def inference_directory(input_directory: str, project_name: str, output_dir: str
     output_dataset = output_project.create_dataset(project_name)
 
     for video_path in os.listdir(input_directory):
-        if os.path.isfile(video_path):
-            inference_video(video_path, output_predictions_path, output_dataset, output_meta, class_names, model, opts, detector)
+        full_video_path = str(Path(input_directory) / Path(video_path))
+        if os.path.isfile(full_video_path):
+            inference_video(full_video_path, output_predictions_path, output_dataset, output_meta, class_names, model, opts, detector)
 
 
 if __name__ == '__main__':
@@ -134,4 +137,4 @@ if __name__ == '__main__':
         output_meta = create_meta(class_names)
         output_project.set_meta(output_meta)
         output_dataset = output_project.create_dataset(input_video_name)
-        inference_video(input_path, output_dir, output_dataset, output_meta, class_names, model, opts, detector)
+        inference_video(input_path, output_dir, output_dataset, output_meta, class_names, model, opts, detector, input_video_name)
