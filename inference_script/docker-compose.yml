@@ -1,0 +1,27 @@
+services:
+  rt-detr:
+    image: supervisely/mvd:rtdetrv2
+    runtime: nvidia
+    environment:
+      PYTHONPATH: /app
+    env_file:
+      - .env
+    volumes:
+      - ../models:/models
+
+  mvd:
+    image: supervisely/mvd:inference
+    runtime: nvidia
+    environment:
+      PYTHONPATH: /app
+    env_file:
+      - .env
+    volumes:
+      - ..:/app
+      - ../models:/models
+      - ${INPUT}:/input
+      - ${OUTPUT}:/output
+    working_dir: /app
+    command: python3 /app/inference_script/run_inference.py
+    depends_on:
+      - rt-detr
