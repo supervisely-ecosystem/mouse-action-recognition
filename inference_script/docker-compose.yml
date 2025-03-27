@@ -1,11 +1,13 @@
 services:
   rt-detr:
-    image: supervisely/mvd:rt-detrv2
+    image: supervisely/mvd:rtdetrv2
     runtime: nvidia
     environment:
       PYTHONPATH: /app
     env_file:
       - .env
+    volumes:
+      - ../models:/models
 
   mvd:
     image: supervisely/mvd:inference
@@ -16,6 +18,7 @@ services:
       - .env
     volumes:
       - ..:/app
+      - ../models:/models
       - ${INPUT}:/input
       - ${OUTPUT}:/output
     working_dir: /app

@@ -106,7 +106,8 @@ if __name__ == '__main__':
     detector_container_port = 8000
     detector_url = f"http://rt-detr:{detector_container_port}"
     
-    checkpoint = "/models/mvd/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
+    model_dir = os.getenv("MODEL_DIR")
+    checkpoint = f"{model_dir}/checkpoint-best/mp_rank_00_model_states.pt"
     input_path = "/input"
     output_dir = "/output"
     
@@ -135,7 +136,7 @@ if __name__ == '__main__':
         inference_directory(input_path, input_dir_name, output_dir, class_names, model, opts, detector)
     else:
         print("Predicting video")
-        input_video_name = input_dir_name
+        input_video_name = os.path.splitext(input_dir_name)[0]
         output_predictions_path = Path(output_dir) / Path(input_video_name) / Path("predictions")
         output_project_path = Path(output_dir) / Path(input_video_name) / Path("SLY_project")
         output_project = VideoProject(str(output_project_path), mode=OpenMode.CREATE)

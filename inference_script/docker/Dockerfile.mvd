@@ -51,6 +51,4 @@ RUN pip install numba==0.53.1 numpy==1.21 supervisely starlette==0.35.0 plotly
 
 WORKDIR /app
 
-ARG MODEL_PATH
-
-COPY ${MODEL_PATH} /models/mvd/
+ENV MODEL_DIR="/models/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26"

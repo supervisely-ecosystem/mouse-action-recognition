@@ -1,6 +1,8 @@
 __pycache__
 /OUTPUT
+/output
 /data
 /tmp
 /results
 .venv/
+/models
