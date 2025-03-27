@@ -60,14 +60,27 @@ def get_overview_chart_figure(metrics):  # -> go.Figure:
 
 def get_per_video_table_data(metrics: dict):
     metric_names = ["precision", "recall", "f1"]
-    content = [
-        {
+    content = []
+    for video_path, video_metrics in metrics.items():
+        if video_path in ["aggregated"]:
+            continue
+        this_vid_metrics = []
+        support = 0
+        for metric_name in metric_names:
+            value = video_metrics["weighted_avg"][metric_name]
+            this_vid_metrics.append(
+                f"{value:.4f}" if isinstance(value, float) else value
+            )
+        for class_name, class_metrics in video_metrics.items():
+            if class_name not in ["weighted_avg", "macro_avg"]:
+                support += class_metrics.get("support", 0)
+
+        content.append({
             "id": video_path,
-            "items": [video_path] + [f"{video_metrics["weighted_avg"][metric_name]:.4f}" if isinstance(video_metrics["weighted_avg"][metric_name], float) else video_metrics[metric_name] for metric_name in metric_names],
-        } for video_path, video_metrics in metrics.items() if video_path != "aggregated"
-    ]
+            "items": [video_path] + this_vid_metrics + [support],
+        })
     table_data = {
-        "columns": ["video_path", *metric_names],
+        "columns": ["video_path", *metric_names, "support"],
         "content": content,
     }
     return table_data
@@ -87,6 +100,29 @@ def get_per_class_table_data(metrics: dict):
     }
     return table_data
 
+
+def get_overview_text(metrics):
+    class_names = [k for k in metrics["aggregated"].keys() if k not in ["overall", "idle"]]
+    count = metrics["aggregated"]["overall"]["support"]
+    text = f"""
+- **Model:** MVD
+- **Sample count:** {count}
+- **Classes:** {', '.join(class_names)}
+"""
+    return text
+
+
+def get_key_metrics_text():
+    s = """
+## Key Metrics:
+
+- **Precision**: The proportion of correctly classified frames to the total number of frames predicted as positive. `(TP / (TP + FP))`
+- **Recall**: The proportion of correctly classified frames to the total number of frames in that class. `(TP / (TP + FN))`
+- **F1 Score**: The harmonic mean of precision and recall. `F1 = (2 * (Precision * Recall) / (Precision + Recall))`
+
+Metrics are calculated based on the number of frames. The aggregation is done by **micro-averaging** (calculating metrics globally by counting the total true positives, false negatives and false positives for all classes, refer to the [documentation](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_fscore_support.html#sklearn.metrics.precision_recall_fscore_support)).
+"""
+    return s
 
 def visuailize(benchmark_dir, metrics):
     from supervisely.nn.benchmark.visualization.widgets import ChartWidget, MarkdownWidget, SidebarWidget, ContainerWidget, TableWidget
@@ -110,9 +146,10 @@ def visuailize(benchmark_dir, metrics):
             return self._api
 
         def _create_widgets(self):
-            self.header = MarkdownWidget("header", "Header", text="# Benchmark Results")
-            self.overview_text = MarkdownWidget("overview_text", "Overview", text="## Overview")
-            self.overview_chart = ChartWidget("key_metrics", get_overview_chart_figure(self.metrics))
+            self.header = MarkdownWidget("header", "Header", text="# Temporal Action Localization Metrics")
+            self.overview = MarkdownWidget("overview", "Overview", text=get_overview_text(self.metrics))
+            self.key_metrics_text = MarkdownWidget("key_metrics_text", "Key Metrics", text=get_key_metrics_text())
+            self.key_metrics = ChartWidget("key_metrics", get_overview_chart_figure(self.metrics))
             self.per_video_text = MarkdownWidget("per_video_text", "Per Video", text="## Per Video Metrics")
             self.per_video_table = TableWidget("per_video_table", data=get_per_video_table_data(self.metrics))
             self.per_class_text = MarkdownWidget("per_class_text", "Per Class", text="## Per Class Metrics")
@@ -126,9 +163,10 @@ def visuailize(benchmark_dir, metrics):
 
             is_anchors_widgets = [
                 # Overview
-                (1, self.header),
-                (1, self.overview_text),
-                (0, self.overview_chart),
+                (0, self.header),
+                (1, self.overview),
+                (1, self.key_metrics_text),
+                (0, self.key_metrics),
                 (1, self.per_video_text),
                 (0, self.per_video_table),
                 (1, self.per_class_text),
@@ -203,7 +241,7 @@ if __name__ == "__main__":
                 cls_name: {k:int(v) if isinstance(v, np.int64) else v for k, v in metrics.items()}
                 for cls_name, metrics in frame_level_results.items()
             }
-            video_key = video_path.replace("/datasets/", "/").replace(gt_path, "").lstrip("/")
+            video_key = video_path.replace("/datasets/", "/").replace("/video/", "/").replace(gt_path, "").lstrip("/")
             all_results[video_key] = data
 
             os.makedirs(str(benchmark_results_path.parent), exist_ok=True)
