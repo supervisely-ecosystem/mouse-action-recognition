@@ -594,10 +594,10 @@ def evaluate_dataset_micro_average(all_predictions, all_ground_truth, video_leng
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
         
         results[c] = {
-            'precision': precision,
-            'recall': recall,
-            'f1': f1,
-            'support': global_tp[c] + global_fn[c]  # Total ground truth frames
+            'precision': float(precision),
+            'recall': float(recall),
+            'f1': float(f1),
+            'support': int(global_tp[c] + global_fn[c])  # Total ground truth frames
         }
     
     # Calculate overall metrics by weighting with global support
