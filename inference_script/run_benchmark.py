@@ -202,13 +202,13 @@ if __name__ == "__main__":
     class_names = ["idle", "Self-Grooming", "Head/Body TWITCH"]
     conf = 0.6
 
-    gt_path = "/gt"
-    gt_dir_name = Path(os.environ.get('GT')).name
+    gt_path = "/root/volume/data/mouse/sampled_dataset"
+    gt_dir_name = Path(gt_path).name
     project = VideoProject(gt_path, mode=OpenMode.READ)
 
-    pred_path = "/pred"
+    pred_path = "/root/volume/results/evaluation/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/predictions"
 
-    output_path = "/output"
+    output_path = "./output"
     benchmark_dir = Path(output_path) / Path("benchmark")
 
     all_predictions = {}
@@ -219,9 +219,9 @@ if __name__ == "__main__":
     for dataset in project.datasets:
         dataset: VideoDataset
         for video_name, video_path, ann_path in dataset.items():
-            predictions_path = Path(pred_path) / Path(dataset.path) / Path(f"{video_name}.json")
+            predictions_path = Path(pred_path) / Path(f"{video_name}.json")
             if not predictions_path.exists():
-                continue
+                raise FileNotFoundError(f"Predictions file not found: {predictions_path}")
 
             benchmark_results_path = Path(benchmark_dir) / Path(gt_dir_name) / Path(dataset.path) / Path(f"{video_name}.json")
 
