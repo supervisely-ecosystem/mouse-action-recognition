@@ -17,7 +17,7 @@ from src.inference.inference import predict_video_with_detector, load_mvd, load_
 RT_DETR_SESSION_NAME = "rtdetr-mouse-detector"
 RT_DETR_MODEL_DIR = "/models/1089_RT-DETRv2/"
 MVD_MODEL_DIR = "/models/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/"
-MVD_CHECKPOINT = "models/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
+MVD_CHECKPOINT = "/models/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/checkpoint-best/mp_rank_00_model_states.pt"
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 MODEL_CLASSES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
 
@@ -132,7 +132,10 @@ def main():
     project_id = env.project_id()
 
     # Load models
-    api.file.download_directory(team_id=team_id, remote_path=MVD_MODEL_DIR, local_save_path="models/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/")
+    api.file.download_directory(team_id=team_id, remote_path=MVD_MODEL_DIR, local_save_path="/models/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/")
+    sly.logger.info(os.listdir("/models"))
+    sly.logger.info(os.listdir("/models/MP_TRAIN_3_maximal_crop_2025-03-11_15-09-26/"))
+    sly.logger.info(os.path.exists(MVD_CHECKPOINT))
     model, opts = load_mvd(MVD_CHECKPOINT)
     session = get_or_create_session(api)
     detector = load_detector(session_url=session.base_url)
