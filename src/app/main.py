@@ -163,6 +163,7 @@ def main():
 
     # Upload results
     with tqdm(total=project.total_items, desc="Uploading annotations") as pbar:
+        api.project.update_meta(project_id, project.meta)
         for dataset in project.datasets:
             dataset: VideoDataset
             video_ids = []

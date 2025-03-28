@@ -64,7 +64,7 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
         frames_to_process = []
         uncached_indices = []
         positions = []
-        
+
         for pos, frame_idx in enumerate(frame_indices):
             if frame_idx not in self.detection_cache:
                 frames_to_process.append(frames[pos])
@@ -74,7 +74,7 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
         # If there are frames to process, detect objects
         if frames_to_process:
             new_annotations = self._detect(frames_to_process)
-            
+
             # Update the cache with new detections
             for frame_idx, annotation in zip(uncached_indices, new_annotations):
                 # If cache is at max size, remove the oldest item (first one in OrderedDict)
