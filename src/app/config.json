@@ -2,7 +2,7 @@
 	"type": "app",
 	"version": "2.0.0",
 	"name": "Mouse action recognition",
-	"entrypoint": "PYTHONPATH=/app python3 src/app/main.py",
+	"entrypoint": "PYTHONPATH=/app/repo python3 src/app/main.py",
     "headless": true,
 	"categories": ["neural network", "videos", "object detection"],
 	"description": "Mouse action recognition with RT-DETRv2 and MVD",
