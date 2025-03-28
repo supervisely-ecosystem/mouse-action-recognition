@@ -192,7 +192,7 @@ def predict_video_with_detector(video_path, model, detector, opts, stride, pbar=
                 'maximal_bbox': bbox,
             })
         if pbar is not None:
-            pbar.update()
+            pbar.update(1)
 
     return predictions
 
