@@ -166,7 +166,7 @@ def predict_video_with_detector(video_path, model, detector, opts, stride, pbar=
     print(f"dataset length: {len(dataset)}")
 
     predictions = []
-    if pbar is not None:
+    if pbar is None:
         iterator = tqdm(data_loader)
     else:
         iterator = data_loader

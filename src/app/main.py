@@ -104,12 +104,12 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
     project.set_meta(project_meta)
 
     total = get_total(project)
-    pbar = sly.Progress("Inference", total_cnt=total)
-    for dataset in project.datasets:
-        dataset: VideoDataset
-        for _, video_path, ann_path in dataset.items():
-            source_ann = VideoAnnotation.load_json_file(ann_path, project_meta)
-            inference_video(video_path, source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
+    with tqdm(total=total, desc="Inference") as pbar:
+        for dataset in project.datasets:
+            dataset: VideoDataset
+            for _, video_path, ann_path in dataset.items():
+                source_ann = VideoAnnotation.load_json_file(ann_path, project_meta)
+                inference_video(video_path, source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
 
 def get_or_create_session(api: sly.Api) -> Session:
     rt_detr_slug = "supervisely-ecosystem/RT-DETRv2/supervisely_integration/serve"
