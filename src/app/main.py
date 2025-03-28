@@ -112,10 +112,11 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
                 inference_video(str(full_video_path), source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
 
 def get_or_create_session(api: sly.Api) -> Session:
+    rt_detr_slug = "supervisely-ecosystem/RT-DETRv2"
     team_id = env.team_id()
     apps = api.app.get_list(team_id=team_id, only_running=True)
     for app in apps:
-        if "supervisely-ecosystem/RT-DETRv2".lower() in app.slug.lower():
+        if rt_detr_slug.lower() in app.slug.lower():
             for task in app.tasks:
                 print(json.dumps(task, indent=4))
                 if task["meta"]["name"] == RT_DETR_SESSION_NAME:
@@ -124,7 +125,11 @@ def get_or_create_session(api: sly.Api) -> Session:
     if len(agents) == 0:
         raise RuntimeError("No agents with GPU available")
     agent = agents[0]
-    session = api.nn.deploy_custom_model(agent_id=agent.id, artifacts_dir=RT_DETR_MODEL_DIR, checkpoint_name="best.pth", team_id=team_id, task_name=RT_DETR_SESSION_NAME)
+    module_id = api.app.get_ecosystem_module_id(rt_detr_slug)
+    task_info = api.task.start(agent_id=agent.id, module_id=module_id, task_name=RT_DETR_SESSION_NAME)
+    api.task.wait(id=task_info["id"], wait_attempts=100, wait_attempt_timeout_sec=5)
+    api.nn.deploy.load_custom_model(task_info["id"], team_id=team_id, artifacts_dir=RT_DETR_MODEL_DIR, checkpoint_name="best.pth")
+    session = Session(api, task_info["id"])
     return session
 
 def main():
