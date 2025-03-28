@@ -145,7 +145,7 @@ def main():
     detector = load_detector(session_url=session.base_url)
     sly.logger.info("Loading model")
     size = api.file.get_directory_size(team_id=team_id, path=REMOTE_MVD_MODEL_DIR)
-    with tqdm(total=size, desc="Downloading MVD model", unit="B") as pbar:
+    with tqdm(total=size, desc="Downloading MVD model", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
         api.file.download_directory(team_id=team_id, remote_path=REMOTE_MVD_MODEL_DIR, local_save_path=MVD_MODEL_DIR, progress_cb=pbar.update)
     model, opts = load_mvd(MVD_CHECKPOINT)
 
