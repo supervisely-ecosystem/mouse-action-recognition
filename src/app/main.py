@@ -127,7 +127,8 @@ def get_or_create_session(api: sly.Api) -> Session:
     agent = agents[0]
     module_id = api.app.get_ecosystem_module_id(rt_detr_slug.lower())
     task_info = api.task.start(agent_id=agent.id, workspace_id=env.workspace_id(), module_id=module_id, task_name=RT_DETR_SESSION_NAME)
-    time.sleep(60*5)
+    sly.logger.info("Sleepting for 2 minutes to wait for the session to start")
+    time.sleep(60*2)
     api.task.wait(id=task_info["id"], target_status=api.task.Status.STARTED, wait_attempts=100, wait_attempt_timeout_sec=5)
     api.nn.deploy.load_custom_model(task_info["id"], team_id=team_id, artifacts_dir=RT_DETR_MODEL_DIR, checkpoint_name="best.pth", runtime="PyTorch", device="cuda")
     session = Session(api, task_info["id"])
@@ -139,13 +140,16 @@ def main():
     project_id = env.project_id()
 
     # Load models
-    api.file.download_directory(team_id=team_id, remote_path=REMOTE_MVD_MODEL_DIR, local_save_path=MVD_MODEL_DIR)
+    sly.logger.info("Creating session with detector")
     session = get_or_create_session(api)
+    sly.logger.info("Loading model")
+    api.file.download_directory(team_id=team_id, remote_path=REMOTE_MVD_MODEL_DIR, local_save_path=MVD_MODEL_DIR)
     detector = load_detector(session_url=session.base_url)
     model, opts = load_mvd(MVD_CHECKPOINT)
 
     # Download project
     project_path = "input/project"
+    sly.logger.info(f"Downloading project {project_id}")
     download_async(api, project_id, dest_dir=project_path, save_video_info=True)
 
     # Inference
@@ -153,18 +157,21 @@ def main():
     project = VideoProject(project_path, mode=OpenMode.READ)
     inference_project(project, project_name=project_info.name, model=model, opts=opts, detector=detector)
 
+    sly.logger.info("Uploading annotations")
+
     # Upload results
-    for dataset in project.datasets:
-        dataset: VideoDataset
-        video_ids = []
-        ann_paths = []
-        for video_name, video_path, ann_path in dataset.items():
-            video_info = dataset.get_item_info(item_name=video_name)
-            video_ids.append(video_info.id)
-            ann_paths.append(ann_path)
+    with tqdm(total=project.total_items, desc="Uploading annotations") as pbar:
+        for dataset in project.datasets:
+            dataset: VideoDataset
+            video_ids = []
+            ann_paths = []
+            for video_name, video_path, ann_path in dataset.items():
+                video_info = dataset.get_item_info(item_name=video_name)
+                video_ids.append(video_info.id)
+                ann_paths.append(ann_path)
 
-        api.video.annotation.upload_paths(video_ids=video_ids, ann_paths=ann_paths, project_meta=project.meta)
-
+            api.video.annotation.upload_paths(video_ids=video_ids, ann_paths=ann_paths, project_meta=project.meta)
+            pbar.update(len(dataset))
 
 if __name__ == "__main__":
     main()
