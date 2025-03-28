@@ -112,11 +112,11 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
                 inference_video(str(full_video_path), source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
 
 def get_or_create_session(api: sly.Api) -> Session:
-    rt_detr_slug = "supervisely-ecosystem/RT-DETRv2"
+    rt_detr_slug = "supervisely-ecosystem/RT-DETRv2/supervisely_integration/serve"
     team_id = env.team_id()
     apps = api.app.get_list(team_id=team_id, only_running=True)
     for app in apps:
-        if rt_detr_slug.lower() in app.slug.lower():
+        if rt_detr_slug.lower() == app.slug.lower():
             for task in app.tasks:
                 print(json.dumps(task, indent=4))
                 if task["meta"]["name"] == RT_DETR_SESSION_NAME:
