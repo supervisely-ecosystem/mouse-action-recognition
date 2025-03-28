@@ -8,5 +8,8 @@
 	"description": "Mouse action recognition with RT-DETRv2 and MVD",
 	"need_gpu": true,
 	"docker_image": "supervisely/mvd:inference",
-	"instance_version": "6.12.30"
+	"instance_version": "6.12.30",
+    "context_menu": {
+		"target": ["videos_project"]
+	}
 }
