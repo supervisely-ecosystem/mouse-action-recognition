@@ -130,7 +130,7 @@ def get_or_create_session(api: sly.Api) -> Session:
     task_info = api.task.start(agent_id=agent.id, workspace_id=env.workspace_id(), module_id=module_id, task_name=RT_DETR_SESSION_NAME)
     time.sleep(60*5)
     api.task.wait(id=task_info["id"], target_status=api.task.Status.STARTED, wait_attempts=100, wait_attempt_timeout_sec=5)
-    api.nn.deploy.load_custom_model(task_info["id"], team_id=team_id, artifacts_dir=RT_DETR_MODEL_DIR, checkpoint_name="best.pth", runtime="PyTorch")
+    api.nn.deploy.load_custom_model(task_info["id"], team_id=team_id, artifacts_dir=RT_DETR_MODEL_DIR, checkpoint_name="best.pth", runtime="PyTorch", device="cuda")
     session = Session(api, task_info["id"])
     return session
 
