@@ -108,9 +108,8 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
         for dataset in project.datasets:
             dataset: VideoDataset
             for _, video_path, ann_path in dataset.items():
-                full_video_path = Path(project.parent_dir) / Path(project.name) / Path(dataset.path) / Path(video_path)
                 source_ann = VideoAnnotation.load_json_file(ann_path, project_meta)
-                inference_video(str(full_video_path), source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
+                inference_video(video_path, source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
 
 def get_or_create_session(api: sly.Api) -> Session:
     rt_detr_slug = "supervisely-ecosystem/RT-DETRv2/supervisely_integration/serve"
