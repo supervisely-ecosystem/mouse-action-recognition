@@ -104,7 +104,7 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
     project.set_meta(project_meta)
 
     total = get_total(project)
-    with tqdm(total=total, desc="Inference") as pbar:
+    with sly.Progress("Inference", total_cnt=total) as pbar:
         for dataset in project.datasets:
             dataset: VideoDataset
             for _, video_path, ann_path in dataset.items():
