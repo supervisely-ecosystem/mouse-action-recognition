@@ -140,7 +140,7 @@ def load_detector(session_url="http://supervisely-utils-rtdetrv2-inference-1:800
     return detector
 
 
-def predict_video_with_detector(video_path, model, detector, opts, stride):
+def predict_video_with_detector(video_path, model, detector, opts, stride, pbar=None):
 
     # Read the video
     dataset = MaximalBBoxSlidingWindow(
@@ -166,7 +166,11 @@ def predict_video_with_detector(video_path, model, detector, opts, stride):
     print(f"dataset length: {len(dataset)}")
 
     predictions = []
-    for input, frame_indices, bboxes in tqdm(data_loader):
+    if pbar is not None:
+        iterator = tqdm(data_loader)
+    else:
+        iterator = data_loader
+    for input, frame_indices, bboxes in iterator:
         input = input.to(device)
         with torch.cuda.amp.autocast():
             with torch.no_grad():
@@ -187,6 +191,8 @@ def predict_video_with_detector(video_path, model, detector, opts, stride):
                 'probabilities': prob.tolist(),
                 'maximal_bbox': bbox,
             })
+        if pbar is not None:
+            pbar.update()
 
     return predictions
 
