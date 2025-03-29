@@ -43,8 +43,8 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
                 frame_path = os.path.join(tmpdir, f"frame_{i}.jpg")
                 Image.fromarray(frame).save(frame_path)
                 img_paths.append(frame_path)
-            anns = self.detector.predict(images=img_paths)
-            anns = [ann.to_json() for ann in anns]
+            preds = self.detector.predict(images=img_paths)
+            anns = [pred.annotation.to_json() for pred in preds]
         return anns
 
     def _detect_with_caching(self, frames, frame_indices):
