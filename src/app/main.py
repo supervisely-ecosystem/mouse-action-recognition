@@ -36,7 +36,7 @@ def create_meta(class_names) -> ProjectMeta:
 def merge_anns(source_ann: VideoAnnotation, new_ann: VideoAnnotation) -> VideoAnnotation:
     # only merge if there are no predictions in the source annotation
     if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):
-        return source_ann
+        return None
     source_ann = source_ann.clone(tags=source_ann.tags.add_items([tag for tag in new_ann.tags]))
     return source_ann
 
@@ -62,8 +62,8 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
         sly.logger.info(f"Skipping video {video_path} because it already has predictions")
         if pbar is not None:
             pbar.update(source_ann.frames_count)
-        return
-    
+        return False
+
     if video_name is None:
         video_name = Path(video_path).name
     # Predict
@@ -83,10 +83,14 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
     frames_count = len(vr)
     frame_size = (vr[0].shape[0], vr[0].shape[1]) # h, w
     try:
-        output_dataset.add_item_file(video_name, None, merge_anns(source_ann, ann_from_predictions(frame_size, frames_count, predictions, output_meta, class_names)))
+        annotation = merge_anns(source_ann, ann_from_predictions(frame_size, frames_count, predictions, output_meta, class_names))
+        if annotation is not None:
+            output_dataset.add_item_file(video_name, None, annotation)
+        return True
     except Exception:
         sly.logger.warning("Unable to save annotation in Supervisely format", exc_info=True)
         traceback.print_exc()
+        return False
 
 
 def get_total(project: VideoProject):
@@ -106,13 +110,16 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
     project_meta = project.meta.merge(model_meta)
     project.set_meta(project_meta)
 
+    updated_anns = []
     total = get_total(project)
-    with tqdm(total=total, desc="Inference") as pbar:
+    with tqdm(total=total, desc=f'Predicting on project "{project_name}"') as pbar:
         for dataset in project.datasets:
             dataset: VideoDataset
             for _, video_path, ann_path in dataset.items():
                 source_ann = VideoAnnotation.load_json_file(ann_path, project_meta)
-                inference_video(video_path, source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
+                if inference_video(video_path, source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar):
+                    updated_anns.append(ann_path)
+    return updated_anns
 
 def get_or_create_session(api: sly.Api) -> Session:
     rt_detr_slug = "supervisely-ecosystem/RT-DETRv2/supervisely_integration/serve"
@@ -177,26 +184,26 @@ def main():
     # Inference
     project_info = api.project.get_info_by_id(project_id)
     project = VideoProject(project_path, mode=OpenMode.READ)
-    inference_project(project, project_name=project_info.name, model=model, opts=opts, detector=detector)
+    updated_ann_paths = inference_project(project, project_name=project_info.name, model=model, opts=opts, detector=detector)
 
     sly.logger.info("Uploading annotations")
+    if len(updated_ann_paths) == 0:
+        sly.logger.info("No annotations were updated")
+        return
 
     # Upload results
-    with tqdm(total=project.total_items, desc="Uploading annotations") as pbar:
-        api.project.update_meta(project_id, project.meta)
+    api.project.update_meta(project_id, project.meta)
+    with tqdm(total=len(updated_ann_paths), desc="Uploading annotations") as pbar:
+        video_ids = []
+        ann_paths = []
         for dataset in project.datasets:
             dataset: VideoDataset
-            video_ids = []
-            ann_paths = []
             for video_name, _, ann_path in dataset.items():
-                video_info = dataset.get_item_info(item_name=video_name)
-                if check_and_update_ann(ann_path, project.meta):
+                if ann_path in updated_ann_paths and check_and_update_ann(ann_path, project.meta):
+                    video_info = dataset.get_item_info(item_name=video_name)
                     video_ids.append(video_info.id)
                     ann_paths.append(ann_path)
-
-            if len(video_ids) > 0:
-                api.video.annotation.upload_paths(video_ids=video_ids, ann_paths=ann_paths, project_meta=project.meta)
-            pbar.update(len(dataset))
+        api.video.annotation.upload_paths(video_ids=video_ids, ann_paths=ann_paths, project_meta=project.meta, progress_cb=pbar.update)
 
 if __name__ == "__main__":
     main()
