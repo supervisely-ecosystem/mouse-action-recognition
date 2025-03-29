@@ -8,7 +8,7 @@ import dotenv
 import supervisely as sly
 from supervisely.nn.inference.session import Session
 import supervisely.io.env as env
-from supervisely import ProjectMeta, VideoProject, OpenMode, VideoDataset, VideoAnnotation
+from supervisely import ProjectMeta, VideoProject, OpenMode, VideoDataset, VideoAnnotation, VideoTagCollection
 from supervisely.project.download import download_async
 from tqdm import tqdm
 
@@ -155,7 +155,7 @@ def check_and_update_ann(ann_path, project_meta):
             has_predictions = True
             filtered_tags.append(tag)
     if has_predictions:
-        video_annotation = video_annotation.clone(tags=filtered_tags)
+        video_annotation = video_annotation.clone(tags=VideoTagCollection(filtered_tags))
         with open(ann_path, "w") as f:
             json.dump(video_annotation.to_json(), f, indent=4)
     return has_predictions
