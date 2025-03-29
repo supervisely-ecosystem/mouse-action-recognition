@@ -12,7 +12,7 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
                  frame_sample_rate=2, input_size=224,
                  stride=5, bbox_padding=0.05):
         super().__init__(video_path, num_frames, frame_sample_rate, input_size, stride)
-        assert isinstance(detector, SessionJSON), "Detector should be an instance of SessionJSON"
+        # assert isinstance(detector, SessionJSON), "Detector should be an instance of SessionJSON"
         self.detector = detector
         self.bbox_padding = bbox_padding
         self.detection_cache = OrderedDict()  # Cache for storing detections by frame index
@@ -43,8 +43,8 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
                 frame_path = os.path.join(tmpdir, f"frame_{i}.jpg")
                 Image.fromarray(frame).save(frame_path)
                 img_paths.append(frame_path)
-            anns = self.detector.inference_image_paths(img_paths)
-            anns = [ann['annotation'] for ann in anns]
+            anns = self.detector.predict(images=img_paths)
+            anns = [ann.to_json() for ann in anns]
         return anns
 
     def _detect_with_caching(self, frames, frame_indices):

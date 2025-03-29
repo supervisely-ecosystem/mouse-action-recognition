@@ -6,9 +6,9 @@ import traceback
 import dotenv
 
 import supervisely as sly
-from supervisely.nn.inference.session import Session
 import supervisely.io.env as env
 from supervisely import ProjectMeta, VideoProject, OpenMode, VideoDataset, VideoAnnotation, VideoTagCollection
+from supervisely.api.neural_network.model_api import ModelApi
 from supervisely.project.download import download_async
 from tqdm import tqdm
 
@@ -121,7 +121,7 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
                     updated_anns.append(ann_path)
     return updated_anns
 
-def get_or_create_session(api: sly.Api) -> Session:
+def get_or_create_session(api: sly.Api) -> ModelApi:
     rt_detr_slug = "supervisely-ecosystem/RT-DETRv2/supervisely_integration/serve"
     team_id = env.team_id()
     apps = api.app.get_list(team_id=team_id, only_running=True)
@@ -130,7 +130,7 @@ def get_or_create_session(api: sly.Api) -> Session:
             for task in app.tasks:
                 print(json.dumps(task, indent=4))
                 if task["meta"]["name"] == RT_DETR_SESSION_NAME:
-                    return Session(api, task["id"])
+                    return api.nn.connect(api, task["id"])
     agents = api.agent.get_list_available(team_id, has_gpu=True)
     if len(agents) == 0:
         raise RuntimeError("No agents with GPU available")
@@ -141,8 +141,8 @@ def get_or_create_session(api: sly.Api) -> Session:
     time.sleep(60*2)
     api.task.wait(id=task_info["id"], target_status=api.task.Status.STARTED, wait_attempts=100, wait_attempt_timeout_sec=5)
     api.nn.deploy.load_custom_model(task_info["id"], team_id=team_id, artifacts_dir=RT_DETR_MODEL_DIR, checkpoint_name="best.pth", runtime="PyTorch", device="cuda")
-    session = Session(api, task_info["id"])
-    return session
+    model = api.nn.connect(api, task_info["id"])
+    return model
 
 def check_and_update_ann(ann_path, project_meta):
     video_annotation = VideoAnnotation.from_json(json.load(open(ann_path, 'r')), project_meta)
@@ -168,8 +168,7 @@ def main():
 
     # Load models
     sly.logger.info("Creating session with detector")
-    session = get_or_create_session(api)
-    detector = load_detector(session_url=session.base_url)
+    detector = get_or_create_session(api)
     sly.logger.info("Loading model")
     size = api.file.get_directory_size(team_id=team_id, path=REMOTE_MVD_MODEL_DIR)
     with tqdm(total=size, desc="Downloading MVD model", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
