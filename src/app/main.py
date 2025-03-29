@@ -130,7 +130,7 @@ def get_or_create_session(api: sly.Api) -> ModelApi:
             for task in app.tasks:
                 print(json.dumps(task, indent=4))
                 if task["meta"]["name"] == RT_DETR_SESSION_NAME:
-                    return api.nn.connect(api, task["id"])
+                    return api.nn.connect(task["id"])
     agents = api.agent.get_list_available(team_id, has_gpu=True)
     if len(agents) == 0:
         raise RuntimeError("No agents with GPU available")
@@ -141,7 +141,7 @@ def get_or_create_session(api: sly.Api) -> ModelApi:
     time.sleep(60*2)
     api.task.wait(id=task_info["id"], target_status=api.task.Status.STARTED, wait_attempts=100, wait_attempt_timeout_sec=5)
     api.nn.deploy.load_custom_model(task_info["id"], team_id=team_id, artifacts_dir=RT_DETR_MODEL_DIR, checkpoint_name="best.pth", runtime="PyTorch", device="cuda")
-    model = api.nn.connect(api, task_info["id"])
+    model = api.nn.connect(task_info["id"])
     return model
 
 def check_and_update_ann(ann_path, project_meta):
