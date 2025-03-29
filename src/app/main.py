@@ -34,8 +34,11 @@ def create_meta(class_names) -> ProjectMeta:
 
 
 def merge_anns(source_ann: VideoAnnotation, new_ann: VideoAnnotation) -> VideoAnnotation:
-    new_ann = new_ann.clone(tags=new_ann.tags.add_items([tag for tag in source_ann.tags]))
-    return new_ann
+    # only merge if there are no predictions in the source annotation
+    if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):
+        return source_ann
+    source_ann = source_ann.clone(tags=source_ann.tags.add_items([tag for tag in new_ann.tags]))
+    return source_ann
 
 def ann_from_predictions(frame_size, frames_count, predictions, project_meta: ProjectMeta, class_names):
     print("frame size:", frame_size)
