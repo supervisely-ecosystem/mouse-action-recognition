@@ -134,6 +134,23 @@ def get_or_create_session(api: sly.Api) -> Session:
     session = Session(api, task_info["id"])
     return session
 
+def check_and_update_ann(ann_path, project_meta):
+    video_annotation = VideoAnnotation.from_json(json.load(open(ann_path, 'r')), project_meta)
+    has_predictions = False
+    filtered_tags = []
+    for tag in video_annotation.tags:
+        if tag.meta.name == "confidence":
+            filtered_tags.append(tag)
+        if tag.meta.name.endswith("_prediction"):
+            has_predictions = True
+            filtered_tags.append(tag)
+    if has_predictions:
+        video_annotation = video_annotation.clone(tags=filtered_tags)
+        with open(ann_path, "w") as f:
+            json.dump(video_annotation.to_json(), f, indent=4)
+    return has_predictions
+
+
 def main():
     api = sly.Api()
     team_id = env.team_id()
@@ -168,12 +185,14 @@ def main():
             dataset: VideoDataset
             video_ids = []
             ann_paths = []
-            for video_name, video_path, ann_path in dataset.items():
+            for video_name, _, ann_path in dataset.items():
                 video_info = dataset.get_item_info(item_name=video_name)
-                video_ids.append(video_info.id)
-                ann_paths.append(ann_path)
+                if check_and_update_ann(ann_path, project.meta):
+                    video_ids.append(video_info.id)
+                    ann_paths.append(ann_path)
 
-            api.video.annotation.upload_paths(video_ids=video_ids, ann_paths=ann_paths, project_meta=project.meta)
+            if len(video_ids) > 0:
+                api.video.annotation.upload_paths(video_ids=video_ids, ann_paths=ann_paths, project_meta=project.meta)
             pbar.update(len(dataset))
 
 if __name__ == "__main__":
