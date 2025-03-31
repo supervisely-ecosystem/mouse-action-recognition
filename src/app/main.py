@@ -64,7 +64,7 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
 def save_predictions(predictions, video_name):
     with open(f"output/{video_name}.json", "w") as f:
         json.dump(predictions, f, indent=4)
-    api.file.upload(team_id=env.team_id(), src=f"output/{video_name}.json", dst=f"mouse-predictions/{project_id}/{video_name}")
+    api.file.upload(team_id=env.team_id(), src=f"output/{video_name}.json", dst=f"/mouse-predictions/{video_name}")
 
 def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector, video_name=None, pbar=None):
     if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):
