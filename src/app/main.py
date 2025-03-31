@@ -28,7 +28,7 @@ dotenv.load_dotenv("local.env")
 
 
 def create_meta(class_names) -> ProjectMeta:
-    tag_metas = [sly.TagMeta(class_name+"_prediction", sly.TagValueType.NONE) for class_name in class_names] + [sly.TagMeta("confidence", sly.TagValueType.ANY_NUMBER)]
+    tag_metas = [sly.TagMeta(class_name+"_prediction", sly.TagValueType.ANY_NUMBER) for class_name in class_names]
     meta = ProjectMeta(tag_metas=tag_metas)
     return meta
 
@@ -42,18 +42,18 @@ def merge_anns(source_ann: VideoAnnotation, new_ann: VideoAnnotation) -> VideoAn
 
 def ann_from_predictions(frame_size, frames_count, predictions, project_meta: ProjectMeta, class_names):
     print("frame size:", frame_size)
-    label_to_tag_meta = {i: project_meta.get_tag_meta(class_name+"_prediction") for i, class_name in enumerate(class_names)}
-    conf_tag_meta = project_meta.get_tag_meta("confidence")
+    label_to_tag_name = {i: class_name for i, class_name in enumerate(MODEL_CLASSES)}
     tags = []
     for prediction in predictions:
-        tag_meta = label_to_tag_meta[prediction["label"]]
+        tag_name = label_to_tag_name[prediction["label"]]
+        pred_tag_name = tag_name + "_prediction"
+        tag_meta = project_meta.get_tag_meta(pred_tag_name)
         if tag_meta is None:
             continue
         confidence = prediction["confidence"]
         frame_range = prediction["frame_range"]
-        tag = sly.VideoTag(tag_meta, frame_range=frame_range)
-        conf_tag = sly.VideoTag(conf_tag_meta, value=confidence, frame_range=frame_range)
-        tags.extend([tag, conf_tag])
+        tag = sly.VideoTag(tag_meta, frame_range=frame_range, value=confidence)
+        tags.append(tag)
     ann = VideoAnnotation(img_size=frame_size, frames_count=frames_count, tags=sly.VideoTagCollection(tags))
     return ann
 

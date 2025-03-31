@@ -64,14 +64,14 @@ def build_model(args):
 
 def parse_config(config_text):
     config_dict = {}
-    
+
     # Split by lines and process each line
     for line in config_text.strip().split('\n'):
         # Skip empty lines
         if not line.strip():
             print("Skipping empty line")
             continue
-            
+
         # Split by whitespace and take first and last elements
         parts = line.split(None, 1)
         if len(parts) == 2:
@@ -87,11 +87,11 @@ def parse_config(config_text):
                 value = float(value) if '.' in value else int(value)
             elif value.lower() == 'none':
                 continue
-                
+
             config_dict[key] = value
         else:
             print(f"Skipping line: {line}")
-    
+
     return config_dict
 
 
@@ -175,7 +175,7 @@ def predict_video_with_detector(video_path, model, detector, opts, stride, pbar=
         with torch.cuda.amp.autocast():
             with torch.no_grad():
                 output = model(input)
-        
+
         # Get probabilities from the model output
         probs = torch.softmax(output, dim=1)
         for i, frame_idxs in enumerate(frame_indices):
@@ -207,7 +207,7 @@ def merge_predictions(predictions: list):
         label = pred['label']
         confidence = pred['confidence']
         bbox = pred.get('maximal_bbox')
-        
+
         # If this is the first segment or it doesn't overlap with previous segment
         if not merged_predictions or start_frame > merged_predictions[-1]['frame_range'][1] or label != merged_predictions[-1]['label']:
             merged_predictions.append({
@@ -224,7 +224,7 @@ def merge_predictions(predictions: list):
             # Update bbox if needed
             if bbox is not None:
                 merged_predictions[-1]['bbox'] = get_maximal_bbox([merged_predictions[-1]['bbox'], bbox])
-    
+
     print(f"Merged {len(predictions)} predictions into {len(merged_predictions)}")
     return merged_predictions
 
