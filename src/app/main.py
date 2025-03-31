@@ -10,6 +10,7 @@ import supervisely.io.env as env
 from supervisely import ProjectMeta, VideoProject, OpenMode, VideoDataset, VideoAnnotation, VideoTagCollection
 from supervisely.api.neural_network.model_api import ModelApi
 from supervisely.project.download import download_async
+from supervisely.io.fs import ensure_base_path
 from tqdm import tqdm
 
 from src.inference.inference import predict_video_with_detector, load_mvd, load_detector, postprocess_predictions
@@ -62,9 +63,11 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
 
 
 def save_predictions(predictions, video_name):
-    with open(f"output/{video_name}.json", "w") as f:
+    path = f"output/{video_name}.json"
+    ensure_base_path(path)
+    with open(path, "w") as f:
         json.dump(predictions, f, indent=4)
-    api.file.upload(team_id=env.team_id(), src=f"output/{video_name}.json", dst=f"/mouse-predictions/{video_name}")
+    api.file.upload(team_id=env.team_id(), src=path, dst=f"/mouse-predictions/{video_name}")
 
 def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector, video_name=None, pbar=None):
     if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):
