@@ -27,6 +27,9 @@ dotenv.load_dotenv(os.path.expanduser("~/supervisely.env"))
 dotenv.load_dotenv("local.env")
 
 
+api = sly.Api()
+
+
 def create_meta(class_names) -> ProjectMeta:
     tag_metas = [sly.TagMeta(class_name+"_prediction", sly.TagValueType.ANY_NUMBER) for class_name in class_names]
     meta = ProjectMeta(tag_metas=tag_metas)
@@ -57,6 +60,12 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
     ann = VideoAnnotation(img_size=frame_size, frames_count=frames_count, tags=sly.VideoTagCollection(tags))
     return ann
 
+
+def save_predictions(predictions, video_name):
+    with open(f"output/{video_name}.json", "w") as f:
+        json.dump(predictions, f, indent=4)
+    api.file.upload(team_id=env.team_id(), src=f"output/{video_name}.json", dst=f"mouse-predictions/{project_id}/{video_name}")
+
 def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector, video_name=None, pbar=None):
     if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):
         sly.logger.info(f"Skipping video {video_path} because it already has predictions")
@@ -76,6 +85,9 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
         pbar=pbar
     )
     predictions = postprocess_predictions(predictions_raw)
+
+    # save predictions to teamfiles:
+    save_predictions(predictions, video_name)
 
     # Visualize predictions
     import decord  # WARNING: if import decord in top, it will crash with 'Segmentation fault (core dumped)'
@@ -162,7 +174,6 @@ def check_and_update_ann(ann_path, project_meta):
 
 
 def main():
-    api = sly.Api()
     team_id = env.team_id()
     project_id = env.project_id()
 
