@@ -139,7 +139,7 @@ class MaximalBBoxSlidingWindow2(VideoSlidingWindow):
             if len(self.buffer) < self.num_frames:
                 continue
 
-            frame_indices = list(range(self.frame_index, self.frame_index + self.num_frames, self.frame_sample_rate))
+            frame_indices = list(range(self.frame_index, self.frame_index + self.num_frames*self.frame_sample_rate, self.frame_sample_rate))
             buffer = self.vr.get_batch(frame_indices).asnumpy()
             w, h = buffer.shape[2], buffer.shape[1]
             figures = [fig for frame in self.buffer for fig in frame["objects"]]
