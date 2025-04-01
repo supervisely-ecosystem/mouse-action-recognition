@@ -67,7 +67,7 @@ def save_predictions(predictions, video_name):
     ensure_base_path(path)
     with open(path, "w") as f:
         json.dump(predictions, f, indent=4)
-    api.file.upload(team_id=env.team_id(), src=path, dst=f"/mouse-predictions/{video_name}")
+    api.file.upload(team_id=env.team_id(), src=path, dst=f"/mouse-predictions/{video_name}.json")
 
 def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector, video_name=None, pbar=None):
     if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):

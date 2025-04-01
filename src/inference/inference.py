@@ -6,6 +6,7 @@ import numpy as np
 
 from timm.models import create_model
 from tqdm import tqdm
+from supervisely.api.neural_network.model_api import ModelApi
 
 from src.inference.video_sliding_window import VideoSlidingWindow
 from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow
@@ -140,7 +141,7 @@ def load_detector(session_url="http://supervisely-utils-rtdetrv2-inference-1:800
     return detector
 
 
-def predict_video_with_detector(video_path, model, detector, opts, stride, pbar=None):
+def predict_video_with_detector(video_path, model, detector: ModelApi, opts, stride, pbar=None):
 
     # Read the video
     dataset = MaximalBBoxSlidingWindow(
@@ -201,16 +202,17 @@ def merge_predictions(predictions: list):
     Merge predictions based on frame ranges and labels.
     """
     predictions.sort(key=lambda x: x['frame_range'][0])
-    merged_predictions = []
+    merged_predictions = {}
     for pred in predictions:
         start_frame, end_frame = pred['frame_range']
         label = pred['label']
         confidence = pred['confidence']
         bbox = pred.get('maximal_bbox')
 
+        this_merged_predictions = merged_predictions.setdefault(label, [])
         # If this is the first segment or it doesn't overlap with previous segment
-        if not merged_predictions or start_frame > merged_predictions[-1]['frame_range'][1] or label != merged_predictions[-1]['label']:
-            merged_predictions.append({
+        if not this_merged_predictions or start_frame > this_merged_predictions[-1]['frame_range'][1] or label != this_merged_predictions[-1]['label']:
+            this_merged_predictions.append({
                 'frame_range': [start_frame, end_frame],
                 'label': label,
                 'confidence': confidence,
@@ -218,13 +220,14 @@ def merge_predictions(predictions: list):
             })
         else:
             # Extend the previous segment
-            merged_predictions[-1]['frame_range'][1] = max(merged_predictions[-1]['frame_range'][1], end_frame)
+            this_merged_predictions[-1]['frame_range'][1] = max(this_merged_predictions[-1]['frame_range'][1], end_frame)
             # Update confidence to the max of the two segments
-            merged_predictions[-1]['confidence'] = max(merged_predictions[-1]['confidence'], confidence)
+            this_merged_predictions[-1]['confidence'] = max(this_merged_predictions[-1]['confidence'], confidence)
             # Update bbox if needed
             if bbox is not None:
-                merged_predictions[-1]['bbox'] = get_maximal_bbox([merged_predictions[-1]['bbox'], bbox])
+                this_merged_predictions[-1]['bbox'] = get_maximal_bbox([this_merged_predictions[-1]['bbox'], bbox])
 
+    merged_predictions = sorted([pred for label_preds in merged_predictions.values() for pred in label_preds], key=lambda x: x['frame_range'][0])
     print(f"Merged {len(predictions)} predictions into {len(merged_predictions)}")
     return merged_predictions
 
