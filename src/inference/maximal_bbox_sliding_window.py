@@ -100,7 +100,7 @@ class MaximalBBoxSlidingWindow(VideoSlidingWindow):
         tensor_batch = torch.stack(tensors)
         indices_batch = list(indices)
         bbox_batch = list(bbox)
-        
+
         return tensor_batch, indices_batch, bbox_batch
 
 def get_maximal_bbox_crop(figures, img_size, padding=0.0):
@@ -116,3 +116,42 @@ def get_maximal_bbox_crop(figures, img_size, padding=0.0):
     x2 = min(w, x2)
     y2 = min(h, y2)
     return x1, y1, x2, y2
+
+
+class MaximalBBoxSlidingWindow2(VideoSlidingWindow):
+    def __init__(self, video_path, detector, num_frames=16,
+                 frame_sample_rate=2, input_size=224,
+                 stride=5, bbox_padding=0.05):
+        super().__init__(video_path, num_frames, frame_sample_rate, input_size, stride)
+        # assert isinstance(detector, SessionJSON), "Detector should be an instance of SessionJSON"
+        self.detector = detector
+        self.bbox_padding = bbox_padding
+        self.detection_cache = OrderedDict()  # Cache for storing detections by frame index
+        self.max_cache_size = 128
+        self.buffer = []
+        self.frame_index = 0
+        self.frame_sample_rate = frame_sample_rate
+        self.ann_iterator = self.detector.predict_detached(video=video_path, step=frame_sample_rate)
+
+    def __iter__(self):
+        for detection in self.ann_iterator:
+            self.buffer.append(detection.annotation.to_json())
+            if len(self.buffer) < self.num_frames:
+                continue
+
+            frame_indices = list(range(self.frame_index, self.frame_index + self.num_frames, self.frame_sample_rate))
+            buffer = self.vr.get_batch(frame_indices).asnumpy()
+            w, h = buffer.shape[2], buffer.shape[1]
+            figures = [fig for frame in self.buffer for fig in frame["objects"]]
+            for fig in figures:
+                fig['geometry'] = fig.copy()
+
+            x1, y1, x2, y2 = get_maximal_bbox_crop(figures, (w, h), padding=self.bbox_padding)
+            buffer = buffer[:, y1:y2, x1:x2, :]
+            buffer = self.data_transform(buffer)
+
+            yield buffer, frame_indices, (x1, y1, x2, y2)
+
+            self.frame_index += self.stride
+            for _ in range(self.stride):
+                self.buffer.pop(0)

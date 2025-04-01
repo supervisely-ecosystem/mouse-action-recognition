@@ -8,8 +8,7 @@ from timm.models import create_model
 from tqdm import tqdm
 from supervisely.api.neural_network.model_api import ModelApi
 
-from src.inference.video_sliding_window import VideoSlidingWindow
-from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow
+from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow, MaximalBBoxSlidingWindow2
 import utils
 from src.inference.arg_parser import get_parser
 from src.bbox_utils import get_maximal_bbox
@@ -103,7 +102,7 @@ def load_mvd(checkpoint):
     checkpoint = Path(checkpoint)
     assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
     output_dir = checkpoint.parent.parent
-    
+
     config_file = output_dir / "config.txt"
     with open(config_file, 'r') as f:
         config_text = f.read()
@@ -144,7 +143,7 @@ def load_detector(session_url="http://supervisely-utils-rtdetrv2-inference-1:800
 def predict_video_with_detector(video_path, model, detector: ModelApi, opts, stride, pbar=None):
 
     # Read the video
-    dataset = MaximalBBoxSlidingWindow(
+    dataset = MaximalBBoxSlidingWindow2(
         video_path,
         detector=detector,
         num_frames=opts.num_frames,
