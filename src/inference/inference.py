@@ -171,6 +171,7 @@ def predict_video_with_detector(video_path, model, detector: ModelApi, opts, str
     else:
         iterator = data_loader
     for input, frame_indices, bboxes in iterator:
+        print("Loaded batch:", frame_indices)
         input = input.to(device)
         with torch.cuda.amp.autocast():
             with torch.no_grad():
