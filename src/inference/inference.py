@@ -6,9 +6,9 @@ import numpy as np
 
 from timm.models import create_model
 from tqdm import tqdm
+from supervisely.api.neural_network.model_api import ModelApi
 
-from src.inference.video_sliding_window import VideoSlidingWindow
-from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow
+from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow, MaximalBBoxSlidingWindow2
 import utils
 from src.inference.arg_parser import get_parser
 from src.bbox_utils import get_maximal_bbox
@@ -64,14 +64,14 @@ def build_model(args):
 
 def parse_config(config_text):
     config_dict = {}
-    
+
     # Split by lines and process each line
     for line in config_text.strip().split('\n'):
         # Skip empty lines
         if not line.strip():
             print("Skipping empty line")
             continue
-            
+
         # Split by whitespace and take first and last elements
         parts = line.split(None, 1)
         if len(parts) == 2:
@@ -87,11 +87,11 @@ def parse_config(config_text):
                 value = float(value) if '.' in value else int(value)
             elif value.lower() == 'none':
                 continue
-                
+
             config_dict[key] = value
         else:
             print(f"Skipping line: {line}")
-    
+
     return config_dict
 
 
@@ -102,7 +102,7 @@ def load_mvd(checkpoint):
     checkpoint = Path(checkpoint)
     assert checkpoint.exists(), f"Checkpoint {checkpoint} does not exist."
     output_dir = checkpoint.parent.parent
-    
+
     config_file = output_dir / "config.txt"
     with open(config_file, 'r') as f:
         config_text = f.read()
@@ -140,10 +140,10 @@ def load_detector(session_url="http://supervisely-utils-rtdetrv2-inference-1:800
     return detector
 
 
-def predict_video_with_detector(video_path, model, detector, opts, stride):
+def predict_video_with_detector(video_path, model, detector: ModelApi, opts, stride, pbar=None):
 
     # Read the video
-    dataset = MaximalBBoxSlidingWindow(
+    dataset = MaximalBBoxSlidingWindow2(
         video_path,
         detector=detector,
         num_frames=opts.num_frames,
@@ -166,12 +166,19 @@ def predict_video_with_detector(video_path, model, detector, opts, stride):
     print(f"dataset length: {len(dataset)}")
 
     predictions = []
-    for input, frame_indices, bboxes in tqdm(data_loader):
+    if pbar is None:
+        iterator = tqdm(data_loader)
+    else:
+        iterator = data_loader
+    last_notified = 0
+    for input, frame_indices, bboxes in iterator:
+        print("pbar is None" if pbar is None else "pbar is not None")
+        print("Loaded batch:", frame_indices)
         input = input.to(device)
         with torch.cuda.amp.autocast():
             with torch.no_grad():
                 output = model(input)
-        
+
         # Get probabilities from the model output
         probs = torch.softmax(output, dim=1)
         for i, frame_idxs in enumerate(frame_indices):
@@ -187,6 +194,12 @@ def predict_video_with_detector(video_path, model, detector, opts, stride):
                 'probabilities': prob.tolist(),
                 'maximal_bbox': bbox,
             })
+        if pbar is not None:
+            current_frame = frame_indices[-1][-1]
+            count = current_frame - last_notified
+            last_notified = current_frame
+            pbar.update(count)
+            print("pbar updated by", count)
 
     return predictions
 
@@ -195,16 +208,17 @@ def merge_predictions(predictions: list):
     Merge predictions based on frame ranges and labels.
     """
     predictions.sort(key=lambda x: x['frame_range'][0])
-    merged_predictions = []
+    merged_predictions = {}
     for pred in predictions:
         start_frame, end_frame = pred['frame_range']
         label = pred['label']
         confidence = pred['confidence']
         bbox = pred.get('maximal_bbox')
-        
+
+        this_merged_predictions = merged_predictions.setdefault(label, [])
         # If this is the first segment or it doesn't overlap with previous segment
-        if not merged_predictions or start_frame > merged_predictions[-1]['frame_range'][1] or label != merged_predictions[-1]['label']:
-            merged_predictions.append({
+        if not this_merged_predictions or start_frame > this_merged_predictions[-1]['frame_range'][1] or label != this_merged_predictions[-1]['label']:
+            this_merged_predictions.append({
                 'frame_range': [start_frame, end_frame],
                 'label': label,
                 'confidence': confidence,
@@ -212,13 +226,14 @@ def merge_predictions(predictions: list):
             })
         else:
             # Extend the previous segment
-            merged_predictions[-1]['frame_range'][1] = max(merged_predictions[-1]['frame_range'][1], end_frame)
+            this_merged_predictions[-1]['frame_range'][1] = max(this_merged_predictions[-1]['frame_range'][1], end_frame)
             # Update confidence to the max of the two segments
-            merged_predictions[-1]['confidence'] = max(merged_predictions[-1]['confidence'], confidence)
+            this_merged_predictions[-1]['confidence'] = max(this_merged_predictions[-1]['confidence'], confidence)
             # Update bbox if needed
             if bbox is not None:
-                merged_predictions[-1]['bbox'] = get_maximal_bbox([merged_predictions[-1]['bbox'], bbox])
-    
+                this_merged_predictions[-1]['bbox'] = get_maximal_bbox([this_merged_predictions[-1]['bbox'], bbox])
+
+    merged_predictions = sorted([pred for label_preds in merged_predictions.values() for pred in label_preds], key=lambda x: x['frame_range'][0])
     print(f"Merged {len(predictions)} predictions into {len(merged_predictions)}")
     return merged_predictions
 

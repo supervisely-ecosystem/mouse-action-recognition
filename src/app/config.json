@@ -1,0 +1,15 @@
+{
+	"type": "app",
+	"version": "2.0.0",
+	"name": "Mouse action recognition",
+	"entrypoint": "PYTHONPATH=/app/repo python3 src/app/main.py",
+    "headless": true,
+	"categories": ["neural network", "videos", "object detection"],
+	"description": "Mouse action recognition with RT-DETRv2 and MVD",
+	"need_gpu": true,
+	"docker_image": "supervisely/mvd-app:0.0.1",
+	"instance_version": "6.12.30",
+    "context_menu": {
+		"target": ["videos_project"]
+	}
+}
