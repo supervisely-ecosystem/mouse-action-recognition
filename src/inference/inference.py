@@ -171,6 +171,7 @@ def predict_video_with_detector(video_path, model, detector: ModelApi, opts, str
     else:
         iterator = data_loader
     for input, frame_indices, bboxes in iterator:
+        print("pbar is None" if pbar is None else "pbar is not None")
         print("Loaded batch:", frame_indices)
         input = input.to(device)
         with torch.cuda.amp.autocast():
@@ -193,7 +194,8 @@ def predict_video_with_detector(video_path, model, detector: ModelApi, opts, str
                 'maximal_bbox': bbox,
             })
         if pbar is not None:
-            pbar.update(1)
+            print("pbar updated by", len(frame_indices))
+            pbar.update(len(frame_indices))
 
     return predictions
 

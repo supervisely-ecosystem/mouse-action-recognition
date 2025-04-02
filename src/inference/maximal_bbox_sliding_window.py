@@ -152,6 +152,6 @@ class MaximalBBoxSlidingWindow2(VideoSlidingWindow):
 
             yield buffer, frame_indices, (x1, y1, x2, y2)
 
-            self.frame_index += self.stride
+            self.frame_index += self.stride * self.frame_sample_rate
             for _ in range(self.stride):
                 self.buffer.pop(0)
