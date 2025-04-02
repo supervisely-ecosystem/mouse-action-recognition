@@ -199,6 +199,7 @@ def main():
     project = VideoProject(project_path, mode=OpenMode.READ)
     updated_ann_paths = inference_project(project, project_name=project_info.name, model=model, opts=opts, detector=detector)
 
+    sly.logger.info("Uploading annotations")
     if len(updated_ann_paths) == 0:
         sly.logger.info("No annotations were updated")
         return
