@@ -170,6 +170,7 @@ def predict_video_with_detector(video_path, model, detector: ModelApi, opts, str
         iterator = tqdm(data_loader)
     else:
         iterator = data_loader
+    last_notified = 0
     for input, frame_indices, bboxes in iterator:
         print("pbar is None" if pbar is None else "pbar is not None")
         print("Loaded batch:", frame_indices)
@@ -194,8 +195,11 @@ def predict_video_with_detector(video_path, model, detector: ModelApi, opts, str
                 'maximal_bbox': bbox,
             })
         if pbar is not None:
-            print("pbar updated by", len(frame_indices))
-            pbar.update(len(frame_indices))
+            current_frame = frame_indices[-1][-1]
+            count = current_frame - last_notified
+            last_notified = current_frame
+            pbar.update(count)
+            print("pbar updated by", count)
 
     return predictions
 
