@@ -151,7 +151,7 @@ def get_or_create_session(api: sly.Api) -> ModelApi:
         raise RuntimeError("No agents with GPU available")
     agent = agents[0]
     module_id = api.app.get_ecosystem_module_id(rt_detr_slug.lower())
-    task_info = api.task.start(agent_id=agent.id, workspace_id=env.workspace_id(), module_id=module_id, task_name=RT_DETR_SESSION_NAME, app_version="deploy-api-test", is_branch=True, log_level="debug")
+    task_info = api.task.start(agent_id=agent.id, workspace_id=env.workspace_id(), module_id=module_id, task_name=RT_DETR_SESSION_NAME, app_version="deploy-api-test", is_branch=True)
     sly.logger.info("Sleepting for 2 minutes to wait for the session to start")
     time.sleep(60*2)
     api.task.wait(id=task_info["id"], target_status=api.task.Status.STARTED, wait_attempts=100, wait_attempt_timeout_sec=5)
