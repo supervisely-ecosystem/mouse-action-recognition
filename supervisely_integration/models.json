@@ -1,0 +1,17 @@
+[
+    {
+        "Model": "MVD ViT-S",
+        "Method": "MVD",
+        "Backbone": "ViT-S",
+        "Teacher": "ViT-B",
+        "Epoch": 400,
+        "Frame": "16x5x3",
+        "Top-1": 80.6,
+        "Top-5": 94.7,
+        "meta": {
+            "task_type": "classification",
+            "model_name": "MVD ViT-S",
+            "model_files": {"checkpoint": "https://drive.google.com/file/d/1ip91KtdrvELVJseyDKFT0ERgNP1Ykusf/view?usp=sharing"}
+        }
+    }
+]

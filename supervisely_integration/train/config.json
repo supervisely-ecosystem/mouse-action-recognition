@@ -1,0 +1,31 @@
+{
+	"type": "app",
+	"version": "2.0.0",
+	"name": "Train MVD",
+	"entrypoint": "python3 -m uvicorn main:train.app --host 0.0.0.0 --port 8000 --ws websockets --app-dir supervisely_integration/train",
+	"port": 8000,
+	"categories": [
+		"neural network",
+		"images",
+		"object detection",
+		"train",
+		"framework:MVD"
+	],
+	"icon": "https://github.com/supervisely-ecosystem/mvd/releases/download/v0.0.1/icon_mvd_train.png",
+	"icon_cover": true,
+	"poster": "https://github.com/supervisely-ecosystem/mvd/releases/download/v0.0.1/poster_mvd_train.png",
+	"description": "Train MVD model on your data",
+	"docker_image": "supervisely/mvd:1.0.0",
+	"instance_version": "6.12.34",
+	"task_location": "workspace_tasks",
+	"need_gpu": true,
+	"gpu": "required",
+	"community_agent": false,
+	"context_menu": {
+		"target": ["images_project"],
+		"context_root": "Neural Networks"
+	},
+	"license": {
+		"type": "Apache-2.0"
+	}
+}

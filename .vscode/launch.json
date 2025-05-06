@@ -1,9 +1,33 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+		{
+			"name": "Uvicorn Train",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"args": [
+				"main:train.app",
+				"--host",
+				"0.0.0.0",
+				"--port",
+				"8000",
+				"--ws",
+				"websockets",
+				"--app-dir",
+				"supervisely_integration/train"
+			],
+			"justMyCode": false,
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}:${PYTHONPATH}",
+				"LOG_LEVEL": "DEBUG",
+				"DEBUG_APP_DIR": "app_data",
+				"APP_NAME": "Train MVD",
+				"TEAM_ID": "17",
+				"WORKSPACE_ID": "21",
+				"PROJECT_ID": "1851",
+			}
+		},
         {
             "name": "Current File",
             "type": "debugpy",
