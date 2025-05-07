@@ -22,24 +22,30 @@ show_logs_in_gui: true
 # [Beta] Collapse GUI cards on selection
 collapsable: false
 
-# Automatically convert classes according to model CV task
-auto_convert_classes: true
+# Automatically convert classes according to model CV task for model benchmark
+# works only with model_benchmark: true
+auto_convert_classes: false
 
 ##################
 ## !New options! ##
 ##################
 
 # if false, use all classes from project meta
-show_classes_selector: false
+classes_selector: 
+  enabled: false
 
 # if false, use all tags from project meta
-show_tags_selector: false
+tags_selector:
+  enabled: false
 
 # if false, skip train/val splits step
-show_train_val_splits_selector: false
+train_val_splits_selector: 
+  enabled: false
+  methods:
+    - Random
+    - Based on tags
+    - Based on datasets
 
-# if not specified, use all methods
-train_val_split_methods:
-  # - Random
-  # - Based on tags
-  - Based on datasets
+model_selector:
+  enabled: true
+  show_custom: false

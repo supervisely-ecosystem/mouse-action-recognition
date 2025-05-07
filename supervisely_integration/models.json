@@ -11,7 +11,7 @@
         "meta": {
             "task_type": "classification",
             "model_name": "MVD ViT-S",
-            "model_files": {"checkpoint": "https://drive.google.com/file/d/1ip91KtdrvELVJseyDKFT0ERgNP1Ykusf/view?usp=sharing"}
+            "model_files": {"checkpoint": "https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/mvd_s_from_b_ckpt_399.pth"}
         }
     }
 ]

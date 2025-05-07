@@ -1,58 +1,49 @@
 import os
-import torch
-import yaml
-
-import supervisely as sly
-from supervisely.nn import ModelSource, RuntimeType
-from supervisely.nn.training.train_app import TrainApp
-# from supervisely_integration.train.trainer import TrainAppMVD
-
-
+from supervisely_integration.train.trainer import TrainAppMVD
+from run_class_finetuning import main as finetune
+from run_class_finetuning import get_args as get_finetune_args
 
 base_path = "supervisely_integration/train"
-train = TrainApp(
+train = TrainAppMVD(
     "MVD",
     f"supervisely_integration/models.json",
     f"{base_path}/hyperparameters.yaml",
     f"{base_path}/app_options.yaml",
 )
 
-
-
 @train.start
 def start_training():
-    train_ann_path, val_ann_path = get_datasets()
-    checkpoint = train.model_files["checkpoint"]
-    # gather experiment info
+    opts, ds_init = get_train_args()
+    train.start_tensorboard(train.log_dir)
+    finetune(opts, ds_init)
+    
     experiment_info = {
         "model_name": train.model_name,
-        # "model_files": {"config": model_config_path},
-        # "checkpoints": output_dir,
+        "model_files": {},
+        "checkpoints": train.output_dir,
         "best_checkpoint": "best.pth",
     }
     return experiment_info
 
-
-def get_datasets():
-    project = train.sly_project
-    meta = project.meta
-
-    # Get Datasets
-    # Test
-    test_dataset: sly.VideoDataset = project.datasets.get("test")
-    # Train
-    train_dataset: sly.VideoDataset = project.datasets.get("train")
-    sg_dataset: sly.VideoDataset = project.datasets.get("train/Self-Grooming")
-    hbt_dataset: sly.VideoDataset = project.datasets.get("train/Head-Body_TWITCH")
-    idle_dataset: sly.VideoDataset = project.datasets.get("train/idle")
-
-    train_dataset.path
-
 def get_train_args():
-    train_args = []
-    train_args.append("--nb_classes")
-    train_args.append("3")
-    train_args.append("--data_path")
-    train_args.append("/root/volume/data/mouse/")
-    train_args.append("--data_root")
-    train_args.append("/root/volume/data/mouse/")
+    project = train.sly_project
+    train_dataset = project.datasets.get("train")
+    if train_dataset is None:
+        raise ValueError("Dataset: 'train' not found. Make sure you are using the correct project.")
+
+    # Init Default
+    opts, ds_init = get_finetune_args()
+    # Static
+    opts.model = "vit_small_patch16_224"
+    opts.data_set = "Kinetics-400"
+    opts.finetune = train.model_files["checkpoint"]
+    opts.nb_classes = "3"
+    opts.data_path = train_dataset.directory
+    opts.data_root = train_dataset.directory
+    opts.det_anno_path = os.path.join(train_dataset.directory, "datasets")
+    opts.log_dir = train.log_dir
+    opts.output_dir = train.output_dir
+    # Hyperparameters
+    for key, value in train.hyperparameters.items():
+        setattr(opts, key, value)
+    return opts, ds_init

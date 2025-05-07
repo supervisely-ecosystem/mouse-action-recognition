@@ -53,8 +53,9 @@ class MaximalCropDataset(VideoClsDataset):
         return buffer
     
     def _get_det_ann_path(self, video_path):
-        ann_path = "/".join(video_path.split("/")[-2:])
-        ann_path = f"{self.det_anno_path}/{ann_path}.json"
+        ds_path = Path(video_path).parent.parent
+        video_name = Path(video_path).name
+        ann_path = os.path.join(ds_path, "ann", f"{video_name}.json")
         return ann_path
     
     def _sample_indexes(self, video_path, sample_rate_scale=1):

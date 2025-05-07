@@ -22,6 +22,7 @@ from utils import NativeScalerWithGradNormCount as NativeScaler
 from utils import multiple_samples_collate
 import utils
 import modeling_finetune
+from supervisely.nn.training import train_logger
 
 print("V2.0")
 
@@ -217,7 +218,8 @@ def get_args():
     else:
         ds_init = None
 
-    return parser.parse_args(), ds_init
+    return parser.parse_args([]), ds_init
+    # return parser.parse_args(), ds_init
 
 
 def main(args, ds_init):
@@ -524,12 +526,15 @@ def main(args, ds_init):
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
     max_accuracy = 0.0
+
+    train_logger.train_started(total_epochs=(args.epoches - args.start_epoch))
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
         if log_writer is not None:
             log_writer.set_step(epoch * num_training_steps_per_epoch * args.update_freq)
 
+        train_logger.epoch_started(total_steps=len(data_loader_train))
         train_stats = train_one_epoch(
             model, criterion, data_loader_train, optimizer,
             device, epoch, loss_scaler, args.clip_grad, model_ema, mixup_fn,
@@ -571,6 +576,7 @@ def main(args, ds_init):
                 log_writer.flush()
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
+        train_logger.epoch_finished()
 
     if dataset_test is not None:
         preds_file = os.path.join(args.output_dir, str(global_rank) + '.txt')
@@ -586,7 +592,7 @@ def main(args, ds_init):
                 with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                     f.write(json.dumps(log_stats) + "\n")
 
-
+    train_logger.train_finished()
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
