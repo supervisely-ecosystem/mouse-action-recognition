@@ -37,7 +37,7 @@ def get_train_args():
     opts.model = "vit_small_patch16_224"
     opts.data_set = "Kinetics-400"
     opts.finetune = train.model_files["checkpoint"]
-    opts.nb_classes = "3"
+    opts.nb_classes = 3
     opts.data_path = train_dataset.directory
     opts.data_root = train_dataset.directory
     opts.det_anno_path = os.path.join(train_dataset.directory, "datasets")
