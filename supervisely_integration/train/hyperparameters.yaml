@@ -1,35 +1,35 @@
 # Training Duration
-epochs: 20 # Total number of training epochs.
-save_ckpt_freq: 5 # Save checkpoint every N epochs.
+epochs: 20 # (int) Total number of training epochs.
+save_ckpt_freq: 5 # (int) Save checkpoint every N epochs.
 
 # Dataset
-val_ratio: 0.2 # Validation ratio.
+val_ratio: 0.2 # (float) Validation ratio.
 
 #  Optimization
-lr: 5e-4 # Base learning rate; scaled proportionally to batch size inside the script.
-batch_size: 12  # Batch size (videos) per GPU before gradient accumulation.
-warmup_epochs: 2  # Number of epochs for learning rate warmup.
-opt: adamw  # Optimizer type (adamw, sgd, etc.).
-opt_betas: 0.9 0.999  # β1 and β2 coefficients for AdamW.
-weight_decay: 0.001  # L2 weight regularization.
+lr: 5e-4 # (float | str) Base learning rate; scaled proportionally to batch size inside the script.
+batch_size: 12  # (int) Batch size (videos) per GPU before gradient accumulation.
+warmup_epochs: 2  # (int) Number of epochs for learning rate warmup.
+opt: adamw  # (str) Optimizer type (adamw, sgd, etc.).
+opt_betas: 0.9 0.999  # (str) β1 and β2 coefficients for AdamW.
+weight_decay: 0.001  # (float) L2 weight regularization.
 
 # Model Input
-input_size: 224 # Spatial resolution of input clip.
-num_frames: 16 # Number of frames in one video clip.
-sampling_rate: 2 # Time step between selected frames.
-short_side_size: 224 # Short side of the frame during augmentation/evaluation.
+input_size: 224 # (int) Spatial resolution of input clip.
+num_frames: 16 # (int) Number of frames in one video clip.
+sampling_rate: 2 # (int) Time step between selected frames.
+short_side_size: 224 # (int) Short side of the frame during augmentation/evaluation.
 
 # Augmentation
-num_sample: 2 # Repeated Augmentation factor.
-reprob: 0.05 # Random Erasing probability.
-mixup_prob: 0.05 # Mixup/CutMix application probability.
+num_sample: 2 # (int) Repeated Augmentation factor.
+reprob: 0.05 # (float) Random Erasing probability.
+mixup_prob: 0.05 # (float) Mixup/CutMix application probability.
 
 # Training distribution
-update_freq: 1 # Gradient accumulation steps.
-enable_deepspeed: true # Enable DeepSpeed engine for efficient distributed training.
-dist_eval: true # Perform evaluation in distributed mode.
-num_workers: 12 # Number of DataLoader workers.
+update_freq: 1 # (int) Gradient accumulation steps.
+enable_deepspeed: false # (bool) Enable DeepSpeed engine for efficient distributed training.
+dist_eval: true # (bool) Perform evaluation in distributed mode.
+num_workers: 12 # (int) Number of DataLoader workers.
 
 # Validation/Test
-test_num_segment: 1 # Number of temporal segments during testing.
-test_num_crop: 1 # Number of spatial crops during testing.
+test_num_segment: 1 # (int) Number of temporal segments during testing.
+test_num_crop: 1 # (int) Number of spatial crops during testing.

@@ -432,7 +432,7 @@ def main(args, ds_init):
 
     total_batch_size = args.batch_size * args.update_freq * utils.get_world_size()
     num_training_steps_per_epoch = len(dataset_train) // total_batch_size
-    args.lr = args.lr * total_batch_size / 256
+    args.lr = float(args.lr) * total_batch_size / 256
     args.min_lr = args.min_lr * total_batch_size / 256
     args.warmup_lr = args.warmup_lr * total_batch_size / 256
     print("LR = %.8f" % args.lr)
@@ -527,7 +527,7 @@ def main(args, ds_init):
     start_time = time.time()
     max_accuracy = 0.0
 
-    train_logger.train_started(total_epochs=(args.epoches - args.start_epoch))
+    train_logger.train_started(total_epochs=(args.epochs - args.start_epoch))
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)

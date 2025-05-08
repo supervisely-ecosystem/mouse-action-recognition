@@ -15,7 +15,7 @@
 	"icon_cover": true,
 	"poster": "https://github.com/supervisely-ecosystem/mvd/releases/download/v0.0.1/poster_mvd_train.png",
 	"description": "Train MVD model on your data",
-	"docker_image": "supervisely/mvd:1.0.0",
+	"docker_image": "supervisely/mouse-action-recognition:1.0.0",
 	"instance_version": "6.12.34",
 	"task_location": "workspace_tasks",
 	"need_gpu": true,

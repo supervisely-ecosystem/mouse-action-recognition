@@ -1,6 +1,6 @@
 services:
   rtdetrv2:
-    image: supervisely/mvd:1.0.0
+    image: supervisely/mouse-action-recognition:1.0.0
     shm_size: 1g
     runtime: nvidia
     env_file:

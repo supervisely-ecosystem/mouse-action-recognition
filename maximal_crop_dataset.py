@@ -10,6 +10,7 @@ from torchvision import transforms
 from decord import VideoReader, cpu
 from torch.utils.data import Dataset
 from kinetics import VideoClsDataset
+from supervisely import logger
 
 
 class MaximalCropDataset(VideoClsDataset):
@@ -86,7 +87,7 @@ class MaximalCropDataset(VideoClsDataset):
         w, h = ann["size"]["width"], ann["size"]["height"]
         figures = [fig for frame in ann['frames'][min_frame_idx:max_frame_idx+1] for fig in frame['figures']]
         if not figures:
-            print(f"No figures found in {ann_path} (frames {min_frame_idx}-{max_frame_idx})")
+            logger.debug(f"No figures found in {ann_path} (frames {min_frame_idx}-{max_frame_idx})")
             x1, y1, x2, y2 = 0, 0, w, h
         else:
             x1, y1, x2, y2 = get_maximal_bbox(figures)

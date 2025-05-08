@@ -37,10 +37,8 @@ class TrainAppMVD(TrainApp):
 
         categories = {"idle": 0, "Head-Body_TWITCH": 1, "Self-Grooming": 2}
         datasets_path = os.path.join(train_dataset.directory, "datasets")
-        csv_dir = train_dataset.directory
-        os.makedirs(csv_dir, exist_ok=True)
-        train_csv_path = os.path.join(csv_dir, "train.csv")
-        val_csv_path = os.path.join(csv_dir, "val.csv")
+        train_csv_path = os.path.join(datasets_path, "train.csv")
+        val_csv_path = os.path.join(datasets_path, "val.csv")
         
         all_videos = []
         for category, label in categories.items():
@@ -48,7 +46,7 @@ class TrainAppMVD(TrainApp):
             if os.path.exists(category_video_dir):
                 video_files = [f for f in os.listdir(category_video_dir) if f.endswith(('.mp4', '.MP4'))]
                 for video_file in video_files:
-                    video_path = f"{datasets_path}/{category}/video/{video_file}"
+                    video_path = f"{category}/video/{video_file}"
                     all_videos.append((video_path, label))
         
         random.shuffle(all_videos)
