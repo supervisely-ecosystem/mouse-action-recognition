@@ -20,8 +20,8 @@ def start_training():
     
     experiment_info = {
         "model_name": train.model_name,
-        "model_files": {},
-        "checkpoints": train.output_dir,
+        "model_files": {"config": os.path.join(train.output_dir, "config.txt")},
+        "checkpoints": os.path.join(train.output_dir, "checkpoints"),
         "best_checkpoint": "best.pth",
     }
     return experiment_info
