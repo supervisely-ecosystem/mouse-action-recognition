@@ -2,7 +2,7 @@
 device_selector: false
 
 # Add options to run model benchmark after training
-model_benchmark: false
+model_benchmark: true
 
 # Export model
 export_onnx_supported: false
