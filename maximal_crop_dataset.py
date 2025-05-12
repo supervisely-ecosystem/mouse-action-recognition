@@ -108,7 +108,7 @@ def get_maximal_bbox(figures):
         return None
     
     # Initialize with the first bbox
-    first_bbox = figures[0]['geometry']['geometry']['points']['exterior']
+    first_bbox = figures[0]['geometry']['points']['exterior']
     min_x = first_bbox[0][0]
     min_y = first_bbox[0][1]
     max_x = first_bbox[1][0]
@@ -116,7 +116,7 @@ def get_maximal_bbox(figures):
     
     # Find the min/max coordinates across all bboxes
     for figure in figures:
-        bbox = figure['geometry']['geometry']['points']['exterior']
+        bbox = figure['geometry']['points']['exterior']
         x1, y1 = bbox[0]
         x2, y2 = bbox[1]
         

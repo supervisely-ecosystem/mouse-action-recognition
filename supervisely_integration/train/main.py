@@ -35,6 +35,7 @@ def get_train_args():
 
     # Init Default
     opts, ds_init = get_finetune_args()
+
     # Static
     opts.model = "vit_small_patch16_224"
     opts.data_set = "Kinetics-400"
@@ -45,13 +46,16 @@ def get_train_args():
     opts.det_anno_path = data_root
     opts.log_dir = train.log_dir
     opts.output_dir = train.output_dir
+    
     # Hyperparameters
     for key, value in train.hyperparameters.items():
         if key == "opt_betas":
             value = tuple(map(float, value.split()))
         setattr(opts, key, value)
 
-    # @TODO: fix deepspeed | torch._six
+    # short_side_size = input_size
+    setattr(opts, "short_side_size", opts.input_size)
+
     if opts.enable_deepspeed:
         opts, ds_init = init_deepspeed(opts)
     return opts, ds_init

@@ -215,14 +215,17 @@ class MaximalBBoxSlidingWindow3(VideoSlidingWindow):
 
     def __iter__(self):
         frame_idx = 0
-        while frame_idx < len(self.frames):
+        total_frames = len(self.vr)
+
+        # Сначала наполним буфер до нужного размера
+        while len(self.buffer) < self.num_frames and frame_idx < len(self.frames):
             frame = self.frames[frame_idx]
             self.buffer.append(frame.to_json())
+            frame_idx += 1
             
-            if len(self.buffer) < self.num_frames:
-                frame_idx += 1
-                continue
-
+        # Основной цикл обработки
+        while frame_idx < len(self.frames) and self.frame_index + (self.num_frames - 1) * self.frame_sample_rate < total_frames:
+            # Создаем список индексов кадров для текущего окна
             frame_indices = list(
                 range(
                     self.frame_index,
@@ -230,22 +233,39 @@ class MaximalBBoxSlidingWindow3(VideoSlidingWindow):
                     self.frame_sample_rate,
                 )
             )
-            buffer = self.vr.get_batch(frame_indices).asnumpy()
-            w, h = buffer.shape[2], buffer.shape[1]
-            figures = [fig for frame in self.buffer for fig in frame["figures"]]
-            for fig in figures:
-                fig["geometry"] = fig.copy()
+            
+            # Получаем данные кадров и обрабатываем их
+            try:
+                buffer = self.vr.get_batch(frame_indices).asnumpy()
+                w, h = buffer.shape[2], buffer.shape[1]
+                
+                # Извлекаем объекты из буфера кадров
+                figures = [fig for frame in self.buffer for fig in frame["figures"]]
 
-            x1, y1, x2, y2 = get_maximal_bbox_crop(
-                figures, (w, h), padding=self.bbox_padding
-            )
-            buffer = buffer[:, y1:y2, x1:x2, :]
-            buffer = self.data_transform(buffer)
+                # Получаем максимальный ограничивающий прямоугольник
+                x1, y1, x2, y2 = get_maximal_bbox_crop(
+                    figures, (w, h), padding=self.bbox_padding
+                )
+                
+                # Обрезаем и трансформируем буфер
+                buffer = buffer[:, y1:y2, x1:x2, :]
+                buffer = self.data_transform(buffer)
 
-            yield buffer, frame_indices, (x1, y1, x2, y2)
-
+                yield buffer, frame_indices, (x1, y1, x2, y2)
+                
+            except Exception as e:
+                print(f"Ошибка при обработке кадров с индексами {frame_indices}: {str(e)}")
+            
+            # Обновляем индекс кадра и удаляем старые кадры из буфера
             self.frame_index += self.stride * self.frame_sample_rate
-            for _ in range(min(self.stride, len(self.buffer))):
+            
+            # Удаляем первые stride кадров из буфера
+            for _ in range(self.stride):
                 if self.buffer:
                     self.buffer.pop(0)
+            
+            # Добавляем новые кадры в буфер
+            for _ in range(self.stride):
+                if frame_idx < len(self.frames):
+                    self.buffer.append(self.frames[frame_idx].to_json())
                     frame_idx += 1
