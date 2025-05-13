@@ -9,7 +9,6 @@
   <a href="#prerequisites">Prerequisites</a> •
   <a href="#how-to-run">How To Run</a> •
   <a href="#obtain-saved-checkpoints">Obtain saved checkpoints</a> •
-  <a href="#how-to-use-your-checkpoints-outside-supervisely-platform">How to use checkpoints outside Supervisely Platform</a> •
   <a href="#acknowledgment">Acknowledgment</a>
 </p>
 
