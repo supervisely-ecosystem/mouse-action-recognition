@@ -6,7 +6,6 @@ import time
 from collections import OrderedDict
 from functools import partial
 from pathlib import Path
-
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -384,7 +383,7 @@ def init_deepspeed(opts):
     ds_init = deepspeed.initialize
     return opts, ds_init
 
-def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir) -> tuple[dict, callable]:
+def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     train_dataset = project.datasets.get("train")
     data_root = os.path.join(train_dataset.directory, "datasets")
     if train_dataset is None:
