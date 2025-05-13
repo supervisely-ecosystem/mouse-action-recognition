@@ -36,18 +36,17 @@ class TrainAppMVD(TrainApp):
     def tags(self):
         return ["idle", "Head-Body_TWITCH", "Self-Grooming"]
 
-    # Debug without downloading project | Remove later
-    def _prepare_working_dir(self):
-        # sly_fs.mkdir(self.work_dir, True)
-        sly_fs.mkdir(self.output_dir, True)
-        sly_fs.mkdir(self._output_checkpoints_dir, True)
-        # sly_fs.mkdir(self.project_dir, True)
-        sly_fs.mkdir(self.model_dir, True)
-        sly_fs.mkdir(self.log_dir, True)
+    # Debug without downloading project
+    # def _prepare_working_dir(self):
+    #     sly_fs.mkdir(self.work_dir, True)
+    #     sly_fs.mkdir(self.output_dir, True)
+    #     sly_fs.mkdir(self._output_checkpoints_dir, True)
+    #     sly_fs.mkdir(self.project_dir, True)
+    #     sly_fs.mkdir(self.model_dir, True)
+    #     sly_fs.mkdir(self.log_dir, True)
 
-    def _download_project(self):
-        self._read_project()
-
+    # def _download_project(self):
+    #     self._read_project()
     # -------------------------------- #
 
     def _split_project(self):
