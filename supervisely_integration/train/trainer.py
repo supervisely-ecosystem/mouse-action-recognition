@@ -10,7 +10,6 @@ from supervisely import (
     VideoProject,
     OpenMode,
     ProjectInfo,
-    VideoAnnotation,
 )
 from supervisely.nn.training.train_app import TrainApp
 import supervisely.io.fs as sly_fs

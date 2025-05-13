@@ -1,11 +1,12 @@
 <div align="center" markdown>
 
-<img src=""/>  
+<img src="https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/OIG1.Q8O44.jpeg" width="200" height="200">  
 
 # Train Mouse Action Recognition
 
 <p align="center">
   <a href="#overview">Overview</a> •
+  <a href="#prerequisites">Prerequisites</a> •
   <a href="#how-to-run">How To Run</a> •
   <a href="#obtain-saved-checkpoints">Obtain saved checkpoints</a> •
   <a href="#how-to-use-your-checkpoints-outside-supervisely-platform">How to use checkpoints outside Supervisely Platform</a> •
@@ -34,9 +35,36 @@ The model is trained to recognize the following action classes:
 - **Self-Grooming**: Mouse is grooming itself 
 - **Head/Body TWITCH**: Mouse exhibits quick, jerky movements of the head or body
 
+# Prerequisites
+
+Before using this training app, you must first prepare your video data using the **Preprocessing App**. The preprocessing app performs essential steps to make your data ready for training:
+
+## Preprocessing App Features
+
+- Creates a properly structured project with train and test datasets
+- Splits videos into training and test sets
+- Extracts training clips from labeled videos for three categories:
+  - "Self-Grooming"
+  - "Head-Body_TWITCH" 
+  - "idle" (negative examples)
+- Applies a mouse detection model to uploaded videos
+- Maintains a cache to avoid reprocessing previously handled videos
+
+## Preprocessing Output
+
+After running the preprocessing app, you will get a new project with the name `[source project id] Training Data` containing:
+
+- **train dataset** with 3 nested datasets of short video clips:
+  - "Self-Grooming"
+  - "Head-Body_TWITCH"
+  - "idle"
+- **test dataset** with full-length original videos for validation
+
+**Important:** The Training App must be launched from this preprocessed project. Running the Training App on unprocessed video projects can result in an error.
+
 # How to Run
 
-**Step 0.** Run the app from context menu of the project with video annotations or from the Ecosystem
+**Step 0.** Run the app from context menu of the preprocessed project with video annotations
 
 **Step 1.** Select if you want to use cached project or redownload it
 

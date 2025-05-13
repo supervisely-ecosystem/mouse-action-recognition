@@ -1,27 +1,38 @@
-import torch
-import numpy as np
-from tqdm import tqdm
 from pathlib import Path
 from typing import List
+
+import numpy as np
+import torch
 from torch.utils.data import DataLoader
-from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow, MaximalBBoxSlidingWindow3
-from supervisely.video_annotation.frame import Frame
-from supervisely.video_annotation.video_annotation import VideoAnnotation
-from supervisely.io.json import load_json_file
-from supervisely.video_annotation.key_id_map import KeyIdMap
+from tqdm import tqdm
+
+from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow
 from supervisely import logger
 from supervisely.app.widgets import Progress
+from supervisely.io.json import load_json_file
+from supervisely.video_annotation.frame import Frame
+from supervisely.video_annotation.key_id_map import KeyIdMap
+from supervisely.video_annotation.video_annotation import VideoAnnotation
+from supervisely_integration.train.scripts.maximal_bbox_sliding_window import (
+    MaximalBBoxSlidingWindowTrainApp,
+)
+
 
 def get_video_ann(video_path, model_meta) -> List[Frame]:
-    video_ann_path = Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
+    video_ann_path = (
+        Path(video_path).parent.parent / "ann" / (Path(video_path).name + ".json")
+    )
     video_ann_path = str(video_ann_path)
     ann_json = load_json_file(video_ann_path)
     video_ann = VideoAnnotation.from_json(ann_json, model_meta, KeyIdMap())
     return video_ann
 
-def predict_video(video_path, model, opts, model_meta, stride, progress_bar: Progress=None):
+
+def predict_video(
+    video_path, model, opts, model_meta, stride, progress_bar: Progress = None
+):
     video_ann = get_video_ann(video_path, model_meta)
-    dataset = MaximalBBoxSlidingWindow3(
+    dataset = MaximalBBoxSlidingWindowTrainApp(
         video_path=video_path,
         video_ann=video_ann,
         num_frames=opts.num_frames,

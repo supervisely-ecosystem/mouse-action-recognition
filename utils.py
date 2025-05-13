@@ -15,7 +15,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
 from torch.utils.data.sampler import Sampler
-from torch._six import inf
 import random
 
 from tensorboardX import SummaryWriter
@@ -23,10 +22,18 @@ from tensorboardX import SummaryWriter
 TORCH_MAJOR = int(torch.__version__.split(".")[0])
 TORCH_MINOR = int(torch.__version__.split(".")[1])
 
-if TORCH_MAJOR >= 1 and TORCH_MINOR >= 8:
+try:
+    from torch._six import inf
+except: # torch > 1.10
+    inf = float('inf')
+    
+try:
+    if TORCH_MAJOR >= 1 and TORCH_MINOR >= 8:
+        _int_classes = int
+    else:
+        from torch import int_classes as _int_classes
+except: # torch > 1.10
     _int_classes = int
-else:
-    from torch._six import int_classes as _int_classes
 
 
 class SmoothedValue(object):
