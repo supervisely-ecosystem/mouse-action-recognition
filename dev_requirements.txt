@@ -2,7 +2,6 @@
 # pip install git+https://github.com/supervisely/supervisely.git@train-app-tags-selector
 
 # official requirements
-pip install git+https://github.com/supervisely/supervisely.git@train-app-tags-selector
 # supervisely[training]
 torch==1.10.0
 torchvision
