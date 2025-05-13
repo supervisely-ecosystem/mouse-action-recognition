@@ -11,9 +11,6 @@ from supervisely import (
     ProjectMeta,
     TagMeta,
     TagValueType,
-    VideoAnnotation,
-    VideoTag,
-    VideoTagCollection,
     logger,
 )
 from supervisely.app.widgets import Progress
@@ -119,26 +116,3 @@ def create_meta(tag_names) -> ProjectMeta:
     ]
     meta = ProjectMeta(tag_metas=tag_metas)
     return meta
-
-
-def ann_from_predictions(
-    frame_size, frames_count, predictions, project_meta: ProjectMeta, tag_names
-):
-    print("frame size:", frame_size)
-    label_to_tag_meta = {
-        i: project_meta.get_tag_meta(class_name)
-        for i, class_name in enumerate(tag_names)
-    }
-    conf_tag_meta = project_meta.get_tag_meta("confidence")
-    tags = []
-    for prediction in predictions:
-        tag_meta = label_to_tag_meta[prediction["label"]]
-        confidence = prediction["confidence"]
-        frame_range = prediction["frame_range"]
-        tag = VideoTag(tag_meta, frame_range=frame_range)
-        conf_tag = VideoTag(conf_tag_meta, value=confidence, frame_range=frame_range)
-        tags.extend([tag, conf_tag])
-    ann = VideoAnnotation(
-        img_size=frame_size, frames_count=frames_count, tags=VideoTagCollection(tags)
-    )
-    return ann

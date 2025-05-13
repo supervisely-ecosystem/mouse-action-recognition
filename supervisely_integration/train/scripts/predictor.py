@@ -24,7 +24,7 @@ def get_video_ann(video_path, model_meta) -> List[Frame]:
     )
     video_ann_path = str(video_ann_path)
     ann_json = load_json_file(video_ann_path)
-    video_ann = VideoAnnotation.from_json(ann_json, model_meta, KeyIdMap())
+    video_ann = VideoAnnotation.from_json(ann_json, model_meta)
     return video_ann
 
 

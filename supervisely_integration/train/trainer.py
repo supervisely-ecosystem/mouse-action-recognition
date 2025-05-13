@@ -13,9 +13,15 @@ from supervisely import (
 )
 from supervisely.nn.training.train_app import TrainApp
 import supervisely.io.fs as sly_fs
+
 import supervisely_integration.train.scripts.benchmark as mvd_benchmark
 from supervisely_integration.train.scripts.inference import run_inference
-from supervisely.io.json import load_json_file
+from mouse_scripts.video_utils import get_total_frames
+from src.benchmark.benchmark import (
+    evaluate_frame_level,
+    load_ground_truth,
+    load_predictions,
+)
 
 
 class TrainAppMVD(TrainApp):
@@ -41,6 +47,7 @@ class TrainAppMVD(TrainApp):
 
     def _download_project(self):
         self._read_project()
+
     # -------------------------------- #
 
     def _split_project(self):
@@ -87,12 +94,10 @@ class TrainAppMVD(TrainApp):
         Returns the evaluation results path.
         """
         task_dir = f"{self.task_id}_{self._app_name}"
-        eval_res_dir = (
-            f"/model-benchmark/{self.project_info.id}_{self.project_info.name}/{task_dir}/"
-        )
+        eval_res_dir = f"/model-benchmark/{self.project_info.id}_{self.project_info.name}/{task_dir}/"
         eval_res_dir = self._api.storage.get_free_dir_name(self.team_id, eval_res_dir)
         return eval_res_dir
-    
+
     def _run_model_benchmark(
         self,
         local_artifacts_dir: str,
@@ -119,11 +124,13 @@ class TrainAppMVD(TrainApp):
         pred_dir = os.path.join(self.work_dir, "predictions")
         sly_fs.mkdir(pred_dir, True)
 
-        self.gui.training_process.validator_text.set("Running MVD inference on test videos...", "info")
+        self.gui.training_process.validator_text.set(
+            "Running MVD inference on test videos...", "info"
+        )
         run_inference(test_video_dir, pred_dir, model_meta, best_checkpoint, config_path, self.progress_bar_main, self.progress_bar_secondary)
         self._set_text_status("benchmark")
 
-        tag_names = ["idle", "Self-Grooming", "Head/Body TWITCH"] # check names
+        tag_names = ["idle", "Self-Grooming", "Head/Body TWITCH"]  # check names
         conf = 0.6
 
         gt_path = self.sly_project.directory
@@ -153,19 +160,17 @@ class TrainAppMVD(TrainApp):
                 / Path(f"{video_name}.json")
             )
 
-            predictions = mvd_benchmark.load_predictions(
-                predictions_path, tag_names, conf=conf
-            )
-            ground_truth = mvd_benchmark.load_ground_truth(ann_path)
+            predictions = load_predictions(predictions_path, tag_names, conf=conf)
+            ground_truth = load_ground_truth(ann_path)
 
             logger.debug(
                 f"Loaded {len(predictions)} predictions and {len(ground_truth)} ground truth segments"
             )
 
             # Evaluate frame-level metrics
-            num_frames = mvd_benchmark.get_total_frames(video_path)
+            num_frames = get_total_frames(video_path)
             logger.debug(f"Total frames in video: {num_frames}")
-            frame_level_results = mvd_benchmark.evaluate_frame_level(
+            frame_level_results = evaluate_frame_level(
                 predictions, ground_truth, num_frames, tag_names[1:]
             )
             logger.debug("=== Frame Level Evaluation ===")
@@ -224,7 +229,9 @@ class TrainAppMVD(TrainApp):
 
         # Visualization
         remote_dir = self._get_eval_results_dir_name()
-        remote_dir = mvd_benchmark.visualize(benchmark_dir, remote_dir, all_results, self.progress_bar_main)
+        remote_dir = mvd_benchmark.visualize(
+            benchmark_dir, all_results, remote_dir, self.progress_bar_main
+        )
         remote_lnk_path = os.path.join(remote_dir, "Model Evaluation Report.lnk")
         remote_template_path = os.path.join(remote_dir, "template.vue")
 
