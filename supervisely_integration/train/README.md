@@ -96,7 +96,7 @@ The app automatically evaluates model performance on test data, providing metric
 
 # Obtain saved checkpoints
 
-All trained checkpoints that are generated through the training process are stored in [Team Files]() in the **experiments** folder.
+All trained checkpoints that are generated through the training process are stored in Team Files in the **experiments** folder.
 
 You will see a folder thumbnail with a link to your saved checkpoints by the end of training process.
 

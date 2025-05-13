@@ -28,6 +28,10 @@ class TrainAppMVD(TrainApp):
     def __init__(self, model_name, model_files, hyperparameters, app_options):
         super().__init__(model_name, model_files, hyperparameters, app_options)
 
+        self.gui.hyperparameters_selector.run_speedtest_checkbox.uncheck()
+        self.gui.hyperparameters_selector.run_speedtest_checkbox.disable()
+        self.gui.hyperparameters_selector.run_speedtest_checkbox.hide()
+
     @property
     def classes(self):
         return ["mouse"]
