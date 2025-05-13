@@ -103,43 +103,6 @@ You will see a folder thumbnail with a link to your saved checkpoints by the end
 
 ![checkpoints-location](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/v0.0.1/checkpoints-location.png)
 
-# How to use your checkpoints outside Supervisely Platform
-
-After you've trained a model in Supervisely, you can download the checkpoint from Team Files and use it as a PyTorch model without Supervisely Platform.
-
-**Quick start:**
-
-1. **Set up environment**. Install required packages for the MVD model.
-2. **Download** your checkpoint from Supervisely Platform.
-3. **Run inference**. Use the checkpoint to perform inference on new video data.
-
-## Inference code example
-
-```python
-import torch
-from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow3
-from supervisely_integration.train.scripts.load import load_mvd
-from supervisely_integration.train.scripts.predictor import predict_video
-
-# Load model
-checkpoint_path = "path/to/checkpoint.pth"
-config_path = "path/to/config.txt"
-model_meta = "path/to/model_meta.json"
-
-model, opts = load_mvd(checkpoint_path, config_path)
-
-# Run inference on video
-video_path = "path/to/video.mp4"
-predictions = predict_video(video_path, model, opts, model_meta, stride=8)
-
-# Process predictions
-for prediction in predictions:
-    frame_range = prediction["frame_range"]
-    label = prediction["label"]
-    confidence = prediction["confidence"]
-    print(f"Frames {frame_range}: Action {label} (confidence: {confidence:.2f})")
-```
-
 # Acknowledgment
 
 This app is based on the `MVD` model ([github](https://github.com/ruiwang2021/mvd)). ![GitHub Org's stars](https://img.shields.io/github/stars/ruiwang2021/mvd?style=social)

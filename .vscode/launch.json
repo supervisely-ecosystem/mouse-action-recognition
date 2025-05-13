@@ -29,18 +29,19 @@
 				"PROJECT_ID": "1889",
 			}
 		},
-        {
-            "name": "Current File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            // "cwd": "${fileDirname}",
-            "justMyCode": false,
-            "env": {
-                "PYTHONPATH": "/root/supervisely"
-            }
-        },
+		{
+			"name": "Python: Current File",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "${file}",
+			"console": "integratedTerminal",
+			"justMyCode": false,
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}:${PYTHONPATH}",
+				"LOG_LEVEL": "DEBUG",
+				"DEBUG_APP_DIR": "app_data",
+			}
+		},
         {
             "name": "Train Script",
             "type": "debugpy",

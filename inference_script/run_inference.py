@@ -13,9 +13,9 @@ from src.inference.inference import predict_video_with_detector, load_mvd, load_
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 
 
-os.environ["SERVER_ADDRESS"] = ""
-os.environ["API_TOKEN"] = ""
-os.environ["TEAM_ID"] = "1"
+# os.environ["SERVER_ADDRESS"] = ""
+# os.environ["API_TOKEN"] = ""
+# os.environ["TEAM_ID"] = "1"
 
 
 def create_meta(class_names) -> ProjectMeta:
