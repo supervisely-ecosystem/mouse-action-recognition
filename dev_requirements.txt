@@ -1,0 +1,26 @@
+# git+https://github.com/supervisely/supervisely.git@some-test-branch
+# pip install git+https://github.com/supervisely/supervisely.git@train-app-tags-selector
+
+# official requirements
+pip install git+https://github.com/supervisely/supervisely.git@train-app-tags-selector
+# supervisely[training]
+torch==1.10.0
+torchvision
+timm==0.4.12
+deepspeed==0.5.8
+tensorboardX
+decord
+einops
+scipy
+
+# supervisely[training]
+# torch==2.6.0
+# torchvision==0.21.0
+# scipy==1.15.2
+# timm==0.4.12
+# deepspeed==0.5.8
+# tensorboardX
+# decord
+# einops
+
+

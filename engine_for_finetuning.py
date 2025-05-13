@@ -10,6 +10,7 @@ from scipy.special import softmax
 from einops import rearrange
 from torch.utils.data._utils.collate import default_collate
 import torch.nn.functional as F
+from supervisely.nn.training import train_logger
 
 
 def train_class_batch(model, samples, target, criterion):
@@ -135,6 +136,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             log_writer.update(grad_norm=grad_norm, head="opt")
 
             log_writer.set_step()
+        train_logger.step_finished()
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
@@ -245,7 +247,10 @@ def merge(eval_path, num_tasks):
             label = line.split(']')[1].split(' ')[1]
             chunk_nb = line.split(']')[1].split(' ')[2]
             split_nb = line.split(']')[1].split(' ')[3]
-            data = np.fromstring(line.split('[')[1].split(']')[0], dtype=np.float, sep=',')
+            try:
+                data = np.fromstring(line.split('[')[1].split(']')[0], dtype=np.float, sep=',')
+            except: # numpy 1.21.0
+                data = np.fromstring(line.split('[')[1].split(']')[0], dtype=np.float32, sep=',')
             data = softmax(data)
             if not name in dict_feats:
                 dict_feats[name] = []

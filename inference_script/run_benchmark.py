@@ -124,7 +124,7 @@ Metrics are calculated based on the number of frames. The aggregation is done by
 """
     return s
 
-def visuailize(benchmark_dir, metrics):
+def visualize(benchmark_dir, metrics):
     from supervisely.nn.benchmark.visualization.widgets import ChartWidget, MarkdownWidget, SidebarWidget, ContainerWidget, TableWidget
     from supervisely.nn.benchmark.base_visualizer import BaseVisualizer
     from supervisely import Api
@@ -273,4 +273,4 @@ if __name__ == "__main__":
         json.dump(all_results["aggregated"], f, indent=4)
     print(f"Aggregated metrics saved to {benchmark_results_path}\n")
 
-    visuailize(benchmark_dir, all_results)
+    visualize(benchmark_dir, all_results)

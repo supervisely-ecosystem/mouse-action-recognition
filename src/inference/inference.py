@@ -6,7 +6,7 @@ import numpy as np
 
 from timm.models import create_model
 from tqdm import tqdm
-from supervisely.api.neural_network.model_api import ModelApi
+# from supervisely.api.neural_network.model_api import ModelApi
 
 from src.inference.maximal_bbox_sliding_window import MaximalBBoxSlidingWindow, MaximalBBoxSlidingWindow2
 import utils
@@ -140,7 +140,7 @@ def load_detector(session_url="http://supervisely-utils-rtdetrv2-inference-1:800
     return detector
 
 
-def predict_video_with_detector(video_path, model, detector: ModelApi, opts, stride, pbar=None):
+def predict_video_with_detector(video_path, model, detector, opts, stride, pbar=None):
 
     # Read the video
     dataset = MaximalBBoxSlidingWindow2(
