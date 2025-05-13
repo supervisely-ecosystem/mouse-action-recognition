@@ -10,7 +10,6 @@ from torchvision import transforms
 from decord import VideoReader, cpu
 from torch.utils.data import Dataset
 from kinetics import VideoClsDataset
-from supervisely import logger
 
 
 class MaximalCropDataset(VideoClsDataset):
@@ -54,9 +53,8 @@ class MaximalCropDataset(VideoClsDataset):
         return buffer
     
     def _get_det_ann_path(self, video_path):
-        ds_path = Path(video_path).parent.parent
-        video_name = Path(video_path).name
-        ann_path = os.path.join(ds_path, "ann", f"{video_name}.json")
+        ann_path = "/".join(video_path.split("/")[-2:])
+        ann_path = f"{self.det_anno_path}/{ann_path}.json"
         return ann_path
     
     def _sample_indexes(self, video_path, sample_rate_scale=1):
@@ -87,7 +85,7 @@ class MaximalCropDataset(VideoClsDataset):
         w, h = ann["size"]["width"], ann["size"]["height"]
         figures = [fig for frame in ann['frames'][min_frame_idx:max_frame_idx+1] for fig in frame['figures']]
         if not figures:
-            logger.debug(f"No figures found in {ann_path} (frames {min_frame_idx}-{max_frame_idx})")
+            print(f"No figures found in {ann_path} (frames {min_frame_idx}-{max_frame_idx})")
             x1, y1, x2, y2 = 0, 0, w, h
         else:
             x1, y1, x2, y2 = get_maximal_bbox(figures)
