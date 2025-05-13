@@ -1,20 +1,20 @@
 {
 	"type": "app",
 	"version": "2.0.0",
-	"name": "Train MVD",
+	"name": "Train MVD for Mouse Action Recognition",
 	"entrypoint": "python3 -m uvicorn main:train.app --host 0.0.0.0 --port 8000 --ws websockets --app-dir supervisely_integration/train",
 	"port": 8000,
 	"categories": [
 		"neural network",
-		"images",
+		"videos",
 		"object detection",
 		"train",
 		"framework:MVD"
 	],
-	"icon": "https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/OIG1.Q8O44.jpeg",
+	"icon": "",
 	"icon_cover": true,
 	"poster": "",
-	"description": "Train MVD model on your data",
+	"description": "Train your own models on custom data for mouse action recognition with MVD",
 	"docker_image": "supervisely/mouse-action-recognition:1.0.0",
 	"instance_version": "6.12.34",
 	"task_location": "workspace_tasks",
@@ -22,7 +22,7 @@
 	"gpu": "required",
 	"community_agent": false,
 	"context_menu": {
-		"target": ["images_project"],
+		"target": ["videos_project"],
 		"context_root": "Neural Networks"
 	},
 	"license": {

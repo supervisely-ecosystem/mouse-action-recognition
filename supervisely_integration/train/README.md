@@ -1,6 +1,6 @@
 <div align="center" markdown>
 
-<img src="https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/OIG1.Q8O44.jpeg" width="200" height="200">  
+<img src="">  
 
 # Train Mouse Action Recognition
 
@@ -79,29 +79,29 @@ Hyperparameters include:
 - Model input configuration (input size, frames, sampling rate)
 - Augmentation options
 
-![train-step-2](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/v0.0.1/train-step-2.png)
+![train-step-2]()
 
 **Step 3.** Enter experiment name and start training
 
-![train-step-3](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/v0.0.1/train-step-3.png)
+![train-step-3]()
 
 **Step 4.** Monitor training progress and metrics
 
-![train-step-4](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/v0.0.1/train-step-4.png)
+![train-step-4]()
 
 **Step 5.** Review benchmark results after training completes
 
 The app automatically evaluates model performance on test data, providing metrics like precision, recall, and F1 score for each action class.
 
-![train-step-5](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/v0.0.1/train-step-5.png)
+![train-step-5]()
 
 # Obtain saved checkpoints
 
-All trained checkpoints that are generated through the training process are stored in [Team Files](https://app.supervisely.com/files/) in the **experiments** folder.
+All trained checkpoints that are generated through the training process are stored in [Team Files]() in the **experiments** folder.
 
 You will see a folder thumbnail with a link to your saved checkpoints by the end of training process.
 
-![checkpoints-location](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/v0.0.1/checkpoints-location.png)
+![checkpoints-location]()
 
 # Acknowledgment
 
