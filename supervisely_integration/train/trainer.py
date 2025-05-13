@@ -14,7 +14,7 @@ from supervisely import (
 )
 from supervisely.nn.training.train_app import TrainApp
 import supervisely.io.fs as sly_fs
-import inference_script.run_benchmark as mvd_benchmark
+import supervisely_integration.train.scripts.benchmark as mvd_benchmark
 from supervisely_integration.train.scripts.inference import run_inference
 from supervisely.io.json import load_json_file
 
@@ -42,7 +42,6 @@ class TrainAppMVD(TrainApp):
 
     def _download_project(self):
         self._read_project()
-
     # -------------------------------- #
 
     def _split_project(self):

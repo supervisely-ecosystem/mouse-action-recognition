@@ -23,7 +23,7 @@ from inference_script.run_inference import (
     inference_video,
 )
 from src.inference.inference import postprocess_predictions
-from supervisely_integration.train.scripts.load import load_mvd
+from supervisely_integration.train.scripts.loader import load_mvd
 from supervisely_integration.train.scripts.predictor import predict_video
 from supervisely.io.json import dump_json_file
 

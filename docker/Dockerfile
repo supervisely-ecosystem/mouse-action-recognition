@@ -47,4 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install mpi4py
 
 # For inference
-RUN pip install numba==0.53.1 numpy==1.21 supervisely starlette==0.35.0
+RUN pip install numba==0.53.1 numpy==1.21 starlette==0.35.0
+
+# RUN pip install supervisely[training]
+RUN pip install git+https://github.com/supervisely/supervisely.git@train-app-tags-selector

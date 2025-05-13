@@ -3,7 +3,8 @@ from pathlib import Path
 import os
 
 import numpy as np
-from supervisely import VideoProject, OpenMode, VideoDataset
+from supervisely import VideoProject, OpenMode, VideoDataset, logger
+import supervisely.io.env as sly_env
 
 from src.benchmark.benchmark import (
     evaluate_frame_level,
@@ -124,7 +125,7 @@ Metrics are calculated based on the number of frames. The aggregation is done by
 """
     return s
 
-def visualize(benchmark_dir, metrics):
+def visualize(benchmark_dir, remote_dir, metrics, progress):
     from supervisely.nn.benchmark.visualization.widgets import ChartWidget, MarkdownWidget, SidebarWidget, ContainerWidget, TableWidget
     from supervisely.nn.benchmark.base_visualizer import BaseVisualizer
     from supervisely import Api
@@ -140,9 +141,7 @@ def visualize(benchmark_dir, metrics):
         @property
         def api(self):
             if self._api is None:
-                print(os.getenv("SERVER_ADDRESS"))
-                print(os.getenv("TEAM_ID"))
-                self._api = Api()
+                self._api = Api.from_env()
             return self._api
 
         def _create_widgets(self):
@@ -188,13 +187,15 @@ def visualize(benchmark_dir, metrics):
     vis_dir = str(benchmark_dir / Path("visualization"))
     visualizer = Visualizer(vis_dir, metrics=metrics)
     visualizer.visualize()
-    print("Visualization saved to", vis_dir)
+    logger.info(f"Visualization saved to: '{vis_dir}'")
     try:
-        team_id = int(os.environ["TEAM_ID"])
-        visualizer.upload_results(team_id, "/test_benchmark/visualization")
-        print("Visualization uploaded to Supervisely")
+        team_id = sly_env.team_id()
+        remote_dir = os.path.join(remote_dir, "visualization")
+        remote_dir = visualizer.upload_results(team_id, remote_dir, progress)
+        logger.info(f"Visualization uploaded to Supervisely: '{remote_dir}' (team id: '{team_id}')")
+        return remote_dir
     except Exception as e:
-        print("Failed to upload visualization:", e)
+        logger.error("Failed to upload visualization:", e)
 
 
 

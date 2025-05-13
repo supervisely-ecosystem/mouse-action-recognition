@@ -15,21 +15,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
 from torch.utils.data.sampler import Sampler
-# from torch._six import inf
+from torch._six import inf
 import random
 
 from tensorboardX import SummaryWriter
 
-# TORCH_MAJOR = int(torch.__version__.split(".")[0])
-# TORCH_MINOR = int(torch.__version__.split(".")[1])
+TORCH_MAJOR = int(torch.__version__.split(".")[0])
+TORCH_MINOR = int(torch.__version__.split(".")[1])
 
-# if TORCH_MAJOR >= 1 and TORCH_MINOR >= 8:
-#     _int_classes = int
-# else:
-#     from torch import int_classes as _int_classes
+if TORCH_MAJOR >= 1 and TORCH_MINOR >= 8:
+    _int_classes = int
+else:
+    from torch._six import int_classes as _int_classes
 
-inf = float('inf')
-_int_classes = int
 
 class SmoothedValue(object):
     """Track a series of values and provide access to smoothed values over a
@@ -422,10 +420,7 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
     output_dir = Path(args.output_dir)
     epoch_name = str(epoch)
     if loss_scaler is not None:
-        if epoch_name == "best":
-            checkpoint_paths = [output_dir / "checkpoints" / ('best.pth')]
-        else:
-            checkpoint_paths = [output_dir / "checkpoints" / ('checkpoint-%s.pth' % epoch_name)]
+        checkpoint_paths = [output_dir / ('checkpoint-%s.pth' % epoch_name)]
         for checkpoint_path in checkpoint_paths:
             to_save = {
                 'model': model_without_ddp.state_dict(),
