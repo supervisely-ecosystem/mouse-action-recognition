@@ -1,13 +1,13 @@
 {
 	"type": "app",
 	"version": "2.0.0",
-	"name": "Train MVD for Mouse Action Recognition",
+	"name": "Train Mouse Action Recognition",
 	"entrypoint": "python3 -m uvicorn main:train.app --host 0.0.0.0 --port 8000 --ws websockets --app-dir supervisely_integration/train",
 	"port": 8000,
 	"categories": [
 		"neural network",
 		"videos",
-		"object detection",
+		"classification",
 		"train",
 		"framework:MVD"
 	],
