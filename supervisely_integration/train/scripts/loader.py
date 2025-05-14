@@ -97,7 +97,7 @@ def build_model(args):
     args.patch_size = patch_size
 
     logger.info(f"Loading ckpt from {args.finetune}")
-    checkpoint = torch.load(args.finetune, map_location="cpu", weights_only=False)
+    checkpoint = torch.load(args.finetune, map_location="cpu") # torch > 2.0.0 weights_only=False
     checkpoint_model = None
     for model_key in args.model_key.split("|"):
         if model_key in checkpoint:
