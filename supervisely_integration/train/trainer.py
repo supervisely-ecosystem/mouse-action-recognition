@@ -30,7 +30,6 @@ class TrainAppMVD(TrainApp):
 
         self.gui.hyperparameters_selector.run_speedtest_checkbox.uncheck()
         self.gui.hyperparameters_selector.run_speedtest_checkbox.disable()
-        self.gui.hyperparameters_selector.run_speedtest_checkbox.hide()
 
     @property
     def classes(self):
