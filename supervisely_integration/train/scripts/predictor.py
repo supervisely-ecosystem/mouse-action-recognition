@@ -55,10 +55,9 @@ def predict_video(
     logger.debug(f"dataset length: {len(dataset)}")
 
     predictions = []
-    iterator = tqdm(data_loader)
     with progress_bar(message="Predicting video", total=len(data_loader)) as pbar:
         progress_bar.show()
-        for input, frame_indices, bboxes in iterator:
+        for input, frame_indices, bboxes in data_loader:
             input = input.to(device)
             with torch.cuda.amp.autocast():
                 with torch.no_grad():
