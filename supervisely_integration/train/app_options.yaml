@@ -26,10 +26,6 @@ collapsable: false
 # works only with model_benchmark: true
 auto_convert_classes: false
 
-##################
-## !New options! ##
-##################
-
 # if false, use all classes from project meta
 classes_selector: 
   enabled: false

@@ -11,9 +11,9 @@
 		"train",
 		"framework:MVD"
 	],
-	"icon": "",
+	"icon": "https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/icon_mouse_train.jpg",
 	"icon_cover": true,
-	"poster": "",
+	"poster": "https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/poster_mouse_train.jpg",
 	"description": "Train your own models on custom data for mouse action recognition with MVD",
 	"docker_image": "supervisely/mouse-action-recognition:1.0.0",
 	"instance_version": "6.12.34",

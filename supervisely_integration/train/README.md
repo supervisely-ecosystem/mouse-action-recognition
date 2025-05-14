@@ -1,6 +1,6 @@
 <div align="center" markdown>
 
-<img src="">  
+<img src="https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/poster_mouse_train.jpg">  
 
 # Train Mouse Action Recognition
 
@@ -67,9 +67,13 @@ After running the preprocessing app, you will get a new project with the name `[
 
 **Step 1.** Select if you want to use cached project or redownload it
 
-![train-step-1]()
+![train-step-1](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/train-step-1.png)
 
-**Step 2.** Configure hyperparameters for the training process
+**Step 2.** Select Model. Currently only 1 model is available
+
+![train-step-2](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/train-step-2.png)
+
+**Step 3.** Configure hyperparameters for the training process
 
 Hyperparameters include:
 - Training duration (epochs, checkpoint frequency)
@@ -78,21 +82,21 @@ Hyperparameters include:
 - Model input configuration (input size, frames, sampling rate)
 - Augmentation options
 
-![train-step-2]()
+![train-step-3](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/train-step-3.png)
 
-**Step 3.** Enter experiment name and start training
+**Step 4.** Enter experiment name and start training
 
-![train-step-3]()
+![train-step-4](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/train-step-4.png)
 
-**Step 4.** Monitor training progress and metrics
+**Step 5.** Monitor training progress and metrics
 
-![train-step-4]()
+![train-step-5]()
 
-**Step 5.** Review benchmark results after training completes
+**Step 6.** Review benchmark results after training completes
 
 The app automatically evaluates model performance on test data, providing metrics like precision, recall, and F1 score for each action class.
 
-![train-step-5]()
+![train-step-6]()
 
 # Obtain saved checkpoints
 
@@ -100,7 +104,7 @@ All trained checkpoints that are generated through the training process are stor
 
 You will see a folder thumbnail with a link to your saved checkpoints by the end of training process.
 
-![checkpoints-location]()
+![artifacts-location](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/train-artifacts.png)
 
 # Acknowledgment
 
