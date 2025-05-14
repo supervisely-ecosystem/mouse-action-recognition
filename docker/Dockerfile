@@ -29,6 +29,7 @@ RUN pip install --no-cache-dir \
     deepspeed \
     "numpy<1.20" \
     timm==0.4.12 \
+    tensorboard \
     TensorboardX \
     decord \
     einops \
