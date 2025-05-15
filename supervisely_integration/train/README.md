@@ -1,6 +1,6 @@
 <div align="center" markdown>
 
-<img src="https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/poster_mouse_train.jpg">  
+<img src="https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/poster_mouse_train-black.jpg">  
 
 # Train Mouse Action Recognition
 
