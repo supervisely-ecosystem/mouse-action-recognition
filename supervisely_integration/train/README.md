@@ -90,13 +90,13 @@ Hyperparameters include:
 
 **Step 5.** Monitor training progress and metrics
 
-![train-step-5]()
+![train-step-5](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/train-step-5.png)
 
 **Step 6.** Review benchmark results after training completes
 
 The app automatically evaluates model performance on test data, providing metrics like precision, recall, and F1 score for each action class.
 
-![train-step-6]()
+![train-step-6](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/train-step-6.png)
 
 # Obtain saved checkpoints
 
