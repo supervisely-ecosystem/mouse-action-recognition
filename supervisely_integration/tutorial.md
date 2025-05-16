@@ -32,7 +32,7 @@ When you have your data and annotations ready, you can start preprocessing your 
 3. **Class balancing**. Since for most of the video frames the mouse performs no actions, there will be too many video clips with inactivity in the training set (we calle this "idle" action). To avoid this, we will balance the number of frames between the "idle" and "Self-Grooming" actions. This will create a more useful and informative sample for training the model.
 4. **Train/test split**. The preprocessing app will create a test dataset with full-length original videos for evaluation purposes. This is important to evaluate the model performance on unseen data after training.
 
-#### How to Preprocess Data
+### How to Preprocess Data
 
 1. Deploy a mouse detector. Run the app **Serve RT-DETRv2** in Supervisely and deploy our custom model trained for mouse detection task.
 2. Run **Preprocess Data for Mouse Action Recognition** app in Supervisely, selecting the input project with your original videos and annotations. The input project may have a free structure with nested datasets, or without it.
@@ -48,7 +48,7 @@ After processing completes, a new project will be created with name **Training D
 
 After preprocessing, you can start training the model. The app **Train Mouse Action Recognition Model** in Supervisely will help you with this. It will train the [MVD](https://github.com/ruiwang2021/mvd) model for mouse action recognition.
 
-#### How to Train
+### How to Train
 
 To start training, run the app **Train Mouse Action Recognition Model** in Supervisely and select the **Training Data** project that had been created after preprocessing. You don't need the mouse detector for training, so you can stop the app **Serve RT-DETRv2** that you used for preprocessing to save GPU resources. Follow the instructions in the training app, specify the training parameters, and run the training. The training may take several hours or even days, depending on the amount of data and hyperparameters you choose. You can monitor the training process in the app.
 
@@ -60,7 +60,7 @@ To start training, run the app **Train Mouse Action Recognition Model** in Super
 - The `batch_size` parameter is also important. It should be at least 6-8 in case of single GPU setup.
 
 
-#### Evaluation
+### Evaluation
 
 After training, the app will automatically evaluate the best checkpoint on the **test** dataset and provide you with Evaluation Report. The report will include the metrics such as precision, recall, and F1-score and will help you understand how well the model performs on unseen data.
 
@@ -68,7 +68,7 @@ After training, the app will automatically evaluate the best checkpoint on the *
 
 Now, you can use the trained model for inference. As long as MVD is limited to short video segments, the model processes long videos in a sliding window manner. The model predicts an action for each short segment (window), and the app will aggregate the results to provide a final prediction for the entire video. The mouse detector is required for inference, it will be used to crop the video segments to the bounding box of the mouse.
 
-#### How to Run Inference
+### How to Run Inference
 
 Run the app **Mouse Action Recognition** to start inference. It loads your trained model together with the mouse detector and make predictions on the input video project or dataset. The app will create a new project with the same structure as the input project, but with predictions for each video. The annotations will include the predicted bounding boxes of the mouse and the predicted action classes represented as tags. The inference may take several hours.
 
@@ -78,7 +78,7 @@ Run the app **Mouse Action Recognition** to start inference. It loads your train
 - запуск в докере
 - выбор mouse detector - нужен ли? Нужно понять откуда он берется (из тим файлс? где должен лежать и тд)
 
-#### Inference in Docker
+### Inference in Docker
 
 You can run inference in a Docker container with all dependencies pre-installed.
 
