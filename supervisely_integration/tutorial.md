@@ -9,23 +9,32 @@ Table of Contents:
 
 ## 1. Import Data
 
-First, you need to import your data into Supervisely.
+### How to import video files
 
-🔴🔴🔴
-Create a project named "Input Project". Import your video data into the project.
+To import video files from your local PC, follow these steps:
 
-When you get new data, import it into this same project. We recommend importing all new data into one project, since this way our algorithms will help optimize the next steps, such as preprocessing and training, to avoid doing work that has already been done.
+1. Create a new project in Supervisely, name it **Input Project**. If your workspace is empty, you can just click the **Import Data** button.
+2. Choose the **Videos** option in the **Type of project** section, and click **Create**.
+3. Next, you can drag and drop your video files into the project.
+
+If you need to import files from a remote server or from a Cloud Storage, you can use apps like [Import Videos from Cloud Storage](https://ecosystem.supervisely.com/apps/import-videos-from-cloud-storage) or [Remote Import](https://ecosystem.supervisely.com/apps/remote-import). Check the [documentation](https://docs.supervisely.com/getting-started/how-to-import) for more details on how to import data.
+
+**Note**: When you get new data, import it into this same project. We recommend importing all new data into one project, since this way our algorithms will help optimize the next steps, such as preprocessing and training to avoid doing work that has already been done.
+
+### Import CSV annotations
+
+To upload your annotations in CSV format, use the script from our [repository](https://github.com/supervisely-ecosystem/mouse-tests) (🔴🔴🔴 It is private now).
 
 
 ## 2. Annotation
 
-You may annotate your data in Supervisely labeling tool or import your annotations in CSV format.
+We recommend to annotate your videos in Supervisely, because this way you can annotate precise frames where an action starts and ends, which will help the model learn much better. Also, the labeling tool is very convenient and has a lot of features that will help you annotate your data faster.
 
-The final annotation should be in the Supervisely format. Your annotations should contain the labels of the mouse actions, such as "Head/Body TWITCH" and "Self-Grooming" and be labeled as Tags. Each tag has a start time and end time, where the action is happening. You don't need to manually annotate bounding boxes around the mouse, because our mouse detector will do it at the preprocessing stage.
+The annotations should be presented in your **Input Project**, and should contain the mouse actions (Head/Body Twitch, Self-Grooming) represented as **Tags**. Each tag has a start time and end time, where the action is happening. You don't need to manually annotate bounding boxes around the mouse, because our mouse detector will do it at the preprocessing stage.
 
 ## 3. Preprocessing
 
-When you have your data and annotations ready, you can start preprocessing your data for training. The preprocessing is done by the **Preprocess Data for Mouse Action Recognition** app in Supervisely and includes the following procedures:
+When you have your data and annotations ready, you can start preprocessing your data for training. The preprocessing is done by the **[Preprocess Data for Mouse Action Recognition](https:...🔴🔴🔴)** app in Supervisely and includes the following procedures:
 
 1. **Mouse detection**. We use a separate mouse detector that predicts bounding boxes around the mouse in each frame. We then crop videos to the bounding box of the mouse. This is done to reduce the amount of background noise and focus on the mouse itself, which helps the model learn better and more efficiently.
 2. **Trim videos into segments**. Videos are trimmed into short clips (~2-3 seconds each), which are manageable for the model. Each clip represents a particular mouse action. This is necessary because the MVD model has a context window limitation, it can't process large videos with a length of several minutes.
@@ -34,23 +43,23 @@ When you have your data and annotations ready, you can start preprocessing your 
 
 ### How to Preprocess Data
 
-1. Deploy a mouse detector. Run the app **Serve RT-DETRv2** in Supervisely and deploy our custom model trained for mouse detection task.
-2. Run **Preprocess Data for Mouse Action Recognition** app in Supervisely, selecting the input project with your original videos and annotations. The input project may have a free structure with nested datasets, or without it.
+1. Deploy a mouse detector. Run the app **[Serve RT-DETRv2](https://ecosystem.supervisely.com/apps/rt-detrv2/supervisely_integration/serve)** in Supervisely and deploy our custom model trained for mouse detection task.
+2. Run **[Preprocess Data for Mouse Action Recognition](https:...🔴🔴🔴)** app in Supervisely, selecting the input project with your original videos and annotations. The input project may have a free structure with nested datasets, or without it.
 3. Follow the instructions in the app. You will need to select the mouse detector you deployed in the first step, and specify the amount of video to train/test split. About 10 full-length videos should be enough for the test dataset.
 4. Run the preprocessing.
 
 After processing completes, a new project will be created with name **Training Data**. It will contain short video clips with detected bounding boxes of mice. It will consists of three datasets, one dataset per class: **"Self-Grooming"**, **"Head-Body_TWITCH"**, and **"idle"**. Additionally, the project will has a **test** dataset with full-length original videos for evaluation purposes.
 
-> **Note**: The app will remember which videos it has already processed, so you can run it multiple times without reprocessing the same videos. This is useful if you add new videos to the input project - the app will only process the new videos and add them to the **Training Data** project that it has already created.
+**Note**: The app will remember which videos it has already processed, so you can run it multiple times without reprocessing the same videos. This is useful if you add new videos to the input project - the app will only process the new videos and add them to the **Training Data** project that it has already created.
 
 
 ## 4. Train & Evaluation
 
-After preprocessing, you can start training the model. The app **Train Mouse Action Recognition Model** in Supervisely will help you with this. It will train the [MVD](https://github.com/ruiwang2021/mvd) model for mouse action recognition.
+After preprocessing, you can start training the model. The app **[Train Mouse Action Recognition Model](https:...🔴🔴🔴)** in Supervisely will help you with this. It will train the [MVD](https://github.com/ruiwang2021/mvd) model for mouse action recognition.
 
 ### How to Train
 
-To start training, run the app **Train Mouse Action Recognition Model** in Supervisely and select the **Training Data** project that had been created after preprocessing. You don't need the mouse detector for training, so you can stop the app **Serve RT-DETRv2** that you used for preprocessing to save GPU resources. Follow the instructions in the training app, specify the training parameters, and run the training. The training may take several hours or even days, depending on the amount of data and hyperparameters you choose. You can monitor the training process in the app.
+To start training, run the app **[Train Mouse Action Recognition Model](https:...🔴🔴🔴)** in Supervisely and select the **Training Data** project that had been created after preprocessing. You don't need the mouse detector for training, so you can stop the app **Serve RT-DETRv2** that you used for preprocessing to save GPU resources. Follow the instructions in the training app, specify the training parameters, and run the training. The training may take several hours or even days, depending on the amount of data and hyperparameters you choose. You can monitor the training process in the app.
 
 **Notes on hyperparameters:**
 
@@ -70,7 +79,7 @@ Now, you can use the trained model for inference. As long as MVD is limited to s
 
 ### How to Run Inference
 
-Run the app **Mouse Action Recognition** to start inference. It loads your trained model together with the mouse detector and make predictions on the input video project or dataset. The app will create a new project with the same structure as the input project, but with predictions for each video. The annotations will include the predicted bounding boxes of the mouse and the predicted action classes represented as tags. The inference may take several hours.
+Run the app **[Mouse Action Recognition](https:...🔴🔴🔴)** to start inference. It loads your trained model together with the mouse detector and make predictions on the input video project or dataset. The app will create a new project with the same structure as the input project, but with predictions for each video. The annotations will include the predicted bounding boxes of the mouse and the predicted action classes represented as tags. The inference may take several hours for long-video datasets.
 
 🔴🔴🔴TODO in inference app:
 - сделать выбор датасета для инференса (не только проект)
