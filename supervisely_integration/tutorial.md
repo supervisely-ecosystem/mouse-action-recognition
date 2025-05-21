@@ -79,6 +79,8 @@ Now, you can use the trained model for inference. As long as MVD is limited to s
 
 ### How to Run Inference
 
+🔴🔴🔴 Добавить про то что надо положить модели в тим файлс.
+
 Run the app **[Mouse Action Recognition](https:...🔴🔴🔴)** to start inference. It loads your trained model together with the mouse detector and make predictions on the input video project or dataset. The app will create a new project with the same structure as the input project, but with predictions for each video. The annotations will include the predicted bounding boxes of the mouse and the predicted action classes represented as tags. The inference may take several hours for long-video datasets.
 
 🔴🔴🔴TODO in inference app:
@@ -106,7 +108,7 @@ cd mouse-action-recognition
 # Path to an input video or directory (relative to this .env file)
 INPUT=/videos/GL010533.MP4
 # Path where to save predictions
-OUTPUT=../output
+OUTPUT=./output
 ```
 
 4. Run the following command to start the inference:
