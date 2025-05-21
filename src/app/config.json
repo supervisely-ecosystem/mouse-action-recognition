@@ -11,6 +11,6 @@
 	"docker_image": "supervisely/mvd-app:0.0.1",
 	"instance_version": "6.12.30",
     "context_menu": {
-		"target": ["videos_project"]
+		"target": ["videos_project", "videos_dataset"]
 	}
 }
