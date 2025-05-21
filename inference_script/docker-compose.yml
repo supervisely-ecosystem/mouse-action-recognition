@@ -1,13 +1,16 @@
 services:
-  mouse-detector:
+  rt-detr:
     image: supervisely/mvd:rtdetrv2
     runtime: nvidia
     environment:
       PYTHONPATH: /app
+      # TEAM_ID: 17
+      # API_TOKEN: ""
+      # SERVER_ADDRESS: https://dev.supervisely.com
     env_file:
       - .env
     volumes:
-      - ../models:/models
+      - ./models:/models
     command:
       - deploy
       - --model
@@ -19,6 +22,9 @@ services:
     environment:
       PYTHONPATH: /app
       MODEL_DIR: /models/mvd
+      # TEAM_ID: 17
+      # API_TOKEN: ""
+      # SERVER_ADDRESS: https://dev.supervisely.com
     env_file:
       - .env
     volumes:
@@ -29,4 +35,4 @@ services:
     working_dir: /app
     command: python3 /app/inference_script/run_inference.py
     depends_on:
-      - mouse-detector
+      - rt-detr
