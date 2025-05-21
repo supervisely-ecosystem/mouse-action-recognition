@@ -139,6 +139,10 @@ def load_detector(session_url="http://supervisely-utils-rtdetrv2-inference-1:800
     detector = SessionJSON(api, session_url=session_url)
     return detector
 
+def load_detector_v2(url: str):
+    from supervisely.nn import ModelAPI
+    detector = ModelAPI(url=url)
+    return detector
 
 def predict_video_with_detector(video_path, model, detector, opts, stride, pbar=None):
 

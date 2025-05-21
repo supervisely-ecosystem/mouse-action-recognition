@@ -13,7 +13,7 @@ from supervisely.project.download import download_async
 from supervisely.io.fs import ensure_base_path
 from tqdm import tqdm
 
-from src.inference.inference import predict_video_with_detector, load_mvd, load_detector, postprocess_predictions
+from src.inference.inference import predict_video_with_detector, load_mvd, postprocess_predictions
 
 
 RT_DETR_SESSION_NAME = "rtdetr-mouse-detector"

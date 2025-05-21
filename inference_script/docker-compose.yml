@@ -1,6 +1,6 @@
 services:
   rt-detr:
-    image: supervisely/mvd:rtdetrv2
+    image: supervisely/mvd:rtdetrv2-1.0.0
     runtime: nvidia
     environment:
       PYTHONPATH: /app
@@ -17,7 +17,7 @@ services:
       - /models/1089_RT-DETRv2/checkpoints/best.pth
 
   mvd:
-    image: supervisely/mvd:inference
+    image: supervisely/mvd:inference-1.0.0
     runtime: nvidia
     environment:
       PYTHONPATH: /app

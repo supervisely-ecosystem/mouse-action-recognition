@@ -7,7 +7,7 @@ from typing import List
 import supervisely as sly
 from supervisely import VideoProject, OpenMode, VideoDataset, ProjectMeta, VideoAnnotation
 
-from src.inference.inference import predict_video_with_detector, load_mvd, load_detector, postprocess_predictions
+from src.inference.inference import predict_video_with_detector, load_mvd, load_detector_v2, postprocess_predictions
 
 
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
@@ -126,7 +126,7 @@ if __name__ == '__main__':
 
     # Load models
     model, opts = load_mvd(checkpoint)
-    detector = load_detector(session_url=detector_url)
+    detector = load_detector_v2(url=detector_url)
 
     if is_project:
         print("Predicting project")
