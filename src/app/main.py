@@ -20,7 +20,7 @@ RT_DETR_SESSION_NAME = "rtdetr-mouse-detector"
 RT_DETR_MODEL_DIR = "/experiments/mouse-project/rtdetr-detection"
 REMOTE_MVD_MODEL_DIR = "/mouse-project/mvd-action-recognition/"
 MVD_MODEL_DIR = "/models/mvd-action-recognition"
-MVD_CHECKPOINT = "/models//mvd-action-recognition/checkpoint-best/mp_rank_00_model_states.pt"
+MVD_CHECKPOINT = "/models/mvd-action-recognition/checkpoint-best/mp_rank_00_model_states.pt"
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 MODEL_CLASSES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
 
