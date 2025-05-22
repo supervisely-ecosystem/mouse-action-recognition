@@ -179,6 +179,8 @@ def check_and_update_ann(ann_path, project_meta):
 def main():
     team_id = env.team_id()
     project_id = env.project_id()
+    dataset_id = env.dataset_id(raise_not_found=False)
+    dataset_ids = [dataset_id] if dataset_id is not None else None
 
     # Load models
     sly.logger.info("Creating session with detector")
@@ -191,8 +193,8 @@ def main():
 
     # Download project
     project_path = "input/project"
-    sly.logger.info(f"Downloading project {project_id}")
-    download_async(api, project_id, dest_dir=project_path, save_video_info=True)
+    sly.logger.info(f"Downloading project {project_id}{'' if dataset_id is None else ', dataset ' + str(dataset_id)}")
+    download_async(api, project_id, dest_dir=project_path, dataset_ids=dataset_ids, save_video_info=True)
 
     # Inference
     project_info = api.project.get_info_by_id(project_id)
