@@ -4,9 +4,6 @@ services:
     runtime: nvidia
     environment:
       PYTHONPATH: /app
-      # TEAM_ID: 17
-      # API_TOKEN: ""
-      # SERVER_ADDRESS: https://dev.supervisely.com
     env_file:
       - .env
     volumes:
@@ -22,9 +19,6 @@ services:
     environment:
       PYTHONPATH: /app
       MODEL_DIR: /models/mvd
-      # TEAM_ID: 17
-      # API_TOKEN: ""
-      # SERVER_ADDRESS: https://dev.supervisely.com
     env_file:
       - .env
     volumes:
