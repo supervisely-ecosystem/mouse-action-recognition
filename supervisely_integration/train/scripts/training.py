@@ -376,6 +376,9 @@ def get_finetune_args():
     return parser.parse_args([]), ds_init
 
 def init_deepspeed(opts):
+    import os
+    os.environ["LOGLEVEL"] = "INFO"
+    
     import deepspeed
     from deepspeed import DeepSpeedConfig
 
