@@ -1,1 +1,1 @@
-supervisely==6.73.366
+git+https://github.com/supervisely/supervisely.git@prediction-session-fixes
