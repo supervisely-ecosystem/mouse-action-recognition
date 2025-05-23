@@ -51,5 +51,5 @@ RUN pip install mpi4py
 RUN pip install numba==0.53.1 numpy==1.21 starlette==0.35.0
 
 # Install Supervisely
-RUN pip install supervisely==6.73.361
-RUN pip install supervisely[training]==6.73.361
+RUN pip install supervisely==6.73.366
+RUN pip install supervisely[training]==6.73.366
