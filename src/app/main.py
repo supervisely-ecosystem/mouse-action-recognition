@@ -18,12 +18,12 @@ from src.inference.inference import predict_video_with_detector, load_mvd, postp
 
 RT_DETR_SESSION_NAME = "rtdetr-mouse-detector"
 REMOTE_RT_DETR_CHECKPOINT_PATH = os.getenv("modal.state.detectorCheckpointPath")
-REMOTE_RT_DETR_MODEL_DIR = Path(REMOTE_RT_DETR_CHECKPOINT_PATH).parent.parent
-RT_DETR_CHECKPOINT_NAME = Path(REMOTE_RT_DETR_CHECKPOINT_PATH).name
+REMOTE_RT_DETR_MODEL_DIR = str(Path(REMOTE_RT_DETR_CHECKPOINT_PATH).parent.parent)
+RT_DETR_CHECKPOINT_NAME = str(Path(REMOTE_RT_DETR_CHECKPOINT_PATH).name)
 MVD_MODEL_DIR = "/models/mvd-action-recognition"
 REMOTE_MVD_CHECKPOINT_PATH = os.getenv("modal.state.MVDCheckpointPath")
-REMOTE_MVD_MODEL_DIR = Path(REMOTE_MVD_CHECKPOINT_PATH).parent.parent
-MVD_CHECKPOINT_NAME = Path(REMOTE_MVD_CHECKPOINT_PATH).name
+REMOTE_MVD_MODEL_DIR = str(Path(REMOTE_MVD_CHECKPOINT_PATH).parent.parent)
+MVD_CHECKPOINT_NAME = str(Path(REMOTE_MVD_CHECKPOINT_PATH).name)
 MVD_CHECKPOINT = REMOTE_MVD_CHECKPOINT_PATH.replace(REMOTE_MVD_MODEL_DIR, MVD_MODEL_DIR)
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 MODEL_CLASSES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
