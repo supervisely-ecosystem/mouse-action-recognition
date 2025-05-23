@@ -382,7 +382,8 @@ def init_deepspeed(opts):
     import deepspeed
     from deepspeed import DeepSpeedConfig
 
-    opts = deepspeed.add_config_arguments(opts)
+    # opts = deepspeed.add_config_arguments(opts) # opts must be parser
+    
     ds_init = deepspeed.initialize
     return opts, ds_init
 
