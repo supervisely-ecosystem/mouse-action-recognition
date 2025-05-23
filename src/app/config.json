@@ -12,5 +12,10 @@
 	"instance_version": "6.12.30",
     "context_menu": {
 		"target": ["videos_project", "videos_dataset"]
+	},
+	"modal_template": "src/app/modal.html",
+	"modal_template_state": {
+		"detectorCheckpointPath": "/experiments/mouse-project/rtdetr-detection/checkpoints/best.pth",
+		"MVDCheckpointPath": "/mouse-project/mvd-action-recognition/checkpoint-best/mp_rank_00_model_states.pt"
 	}
 }

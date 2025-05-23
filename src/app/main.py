@@ -8,7 +8,7 @@ import dotenv
 import supervisely as sly
 import supervisely.io.env as env
 from supervisely import ProjectMeta, VideoProject, OpenMode, VideoDataset, VideoAnnotation, VideoTagCollection
-from supervisely.api.neural_network.model_api import ModelApi
+from supervisely.nn.model.model_api import ModelAPI
 from supervisely.project.download import download_async
 from supervisely.io.fs import ensure_base_path
 from tqdm import tqdm
@@ -17,10 +17,14 @@ from src.inference.inference import predict_video_with_detector, load_mvd, postp
 
 
 RT_DETR_SESSION_NAME = "rtdetr-mouse-detector"
-RT_DETR_MODEL_DIR = "/experiments/mouse-project/rtdetr-detection"
-REMOTE_MVD_MODEL_DIR = "/mouse-project/mvd-action-recognition/"
+REMOTE_RT_DETR_CHECKPOINT_PATH = os.getenv("modal.state.detectorCheckpointPath")
+REMOTE_RT_DETR_MODEL_DIR = Path(REMOTE_RT_DETR_CHECKPOINT_PATH).parent.parent
+RT_DETR_CHECKPOINT_NAME = Path(REMOTE_RT_DETR_CHECKPOINT_PATH).name
 MVD_MODEL_DIR = "/models/mvd-action-recognition"
-MVD_CHECKPOINT = "/models/mvd-action-recognition/checkpoint-best/mp_rank_00_model_states.pt"
+REMOTE_MVD_CHECKPOINT_PATH = os.getenv("modal.state.MVDCheckpointPath")
+REMOTE_MVD_MODEL_DIR = Path(REMOTE_MVD_CHECKPOINT_PATH).parent.parent
+MVD_CHECKPOINT_NAME = Path(REMOTE_MVD_CHECKPOINT_PATH).name
+MVD_CHECKPOINT = REMOTE_MVD_CHECKPOINT_PATH.replace(REMOTE_MVD_MODEL_DIR, MVD_MODEL_DIR)
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 MODEL_CLASSES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
 
@@ -136,7 +140,7 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
                     updated_anns.append(ann_path)
     return updated_anns
 
-def get_or_create_session(api: sly.Api) -> ModelApi:
+def get_or_create_session(api: sly.Api) -> ModelAPI:
     rt_detr_slug = "supervisely-ecosystem/RT-DETRv2/supervisely_integration/serve"
     team_id = env.team_id()
     apps = api.app.get_list(team_id=team_id, only_running=True)
@@ -150,13 +154,7 @@ def get_or_create_session(api: sly.Api) -> ModelApi:
     if len(agents) == 0:
         raise RuntimeError("No agents with GPU available")
     agent = agents[0]
-    module_id = api.app.get_ecosystem_module_id(rt_detr_slug.lower())
-    task_info = api.task.start(agent_id=agent.id, workspace_id=env.workspace_id(), module_id=module_id, task_name=RT_DETR_SESSION_NAME)
-    sly.logger.info("Sleepting for 2 minutes to wait for the session to start")
-    time.sleep(60*2)
-    api.task.wait(id=task_info["id"], target_status=api.task.Status.STARTED, wait_attempts=100, wait_attempt_timeout_sec=5)
-    api.nn.deploy.load_custom_model(task_info["id"], team_id=team_id, artifacts_dir=RT_DETR_MODEL_DIR, checkpoint_name="best.pth", runtime="PyTorch", device="cuda")
-    model = api.nn.connect(task_info["id"])
+    model = api.nn.deploy(model=REMOTE_RT_DETR_CHECKPOINT_PATH, runtime="PyTorch", device="cuda", agent_id=agent.id, workspace_id=env.workspace_id())
     return model
 
 def check_and_update_ann(ann_path, project_meta):
