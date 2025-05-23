@@ -27,6 +27,7 @@ MVD_CHECKPOINT_NAME = Path(REMOTE_MVD_CHECKPOINT_PATH).name
 MVD_CHECKPOINT = REMOTE_MVD_CHECKPOINT_PATH.replace(REMOTE_MVD_MODEL_DIR, MVD_MODEL_DIR)
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
 MODEL_CLASSES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
+RT_DETR_STOP_SESSION_FLAG = False
 
 dotenv.load_dotenv(os.path.expanduser("~/supervisely.env"))
 dotenv.load_dotenv("local.env")
@@ -149,12 +150,14 @@ def get_or_create_session(api: sly.Api) -> ModelAPI:
             for task in app.tasks:
                 print(json.dumps(task, indent=4))
                 if task["meta"]["name"] == RT_DETR_SESSION_NAME:
+                    RT_DETR_STOP_SESSION_FLAG = False
                     return api.nn.connect(task["id"])
     agents = api.agent.get_list_available(team_id, has_gpu=True)
     if len(agents) == 0:
         raise RuntimeError("No agents with GPU available")
     agent = agents[0]
     model = api.nn.deploy(model=REMOTE_RT_DETR_CHECKPOINT_PATH, runtime="PyTorch", device="cuda", agent_id=agent.id, workspace_id=env.workspace_id())
+    RT_DETR_STOP_SESSION_FLAG = True
     return model
 
 def check_and_update_ann(ann_path, project_meta):
@@ -216,6 +219,10 @@ def main():
                     video_ids.append(video_info.id)
                     ann_paths.append(ann_path)
         api.video.annotation.upload_paths(video_ids=video_ids, ann_paths=ann_paths, project_meta=project.meta, progress_cb=pbar.update)
+
+    if RT_DETR_STOP_SESSION_FLAG:
+        sly.logger.info("Stopping RT-DETR session")
+        detector.shutdown()
 
 if __name__ == "__main__":
     main()
