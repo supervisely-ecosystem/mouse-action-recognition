@@ -26,7 +26,7 @@ RUN ln -s /usr/bin/python3 /usr/bin/python \
 RUN pip install --no-cache-dir \
     torch==1.11.0+cu115 \
     torchvision==0.12.0+cu115 \
-    deepspeed \
+    deepspeed==0.5.8 \
     "numpy<1.20" \
     timm==0.4.12 \
     tensorboard \
