@@ -142,6 +142,7 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
     return updated_anns
 
 def get_or_create_session(api: sly.Api) -> ModelAPI:
+    global RT_DETR_STOP_SESSION_FLAG
     rt_detr_slug = "supervisely-ecosystem/RT-DETRv2/supervisely_integration/serve"
     team_id = env.team_id()
     apps = api.app.get_list(team_id=team_id, only_running=True)
@@ -156,7 +157,7 @@ def get_or_create_session(api: sly.Api) -> ModelAPI:
     if len(agents) == 0:
         raise RuntimeError("No agents with GPU available")
     agent = agents[0]
-    model = api.nn.deploy(model=REMOTE_RT_DETR_CHECKPOINT_PATH, runtime="PyTorch", device="cuda", agent_id=agent.id, workspace_id=env.workspace_id())
+    model = api.nn.deploy(model=REMOTE_RT_DETR_CHECKPOINT_PATH, runtime="PyTorch", device="cuda", agent_id=agent.id, workspace_id=env.workspace_id(), task_name=RT_DETR_SESSION_NAME)
     RT_DETR_STOP_SESSION_FLAG = True
     return model
 
