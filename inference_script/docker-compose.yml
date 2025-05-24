@@ -14,7 +14,7 @@ services:
       - /models/1089_RT-DETRv2/checkpoints/best.pth
 
   mvd:
-    image: supervisely/mvd:inference-1.0.0
+    image: supervisely/mvd:inference-1.0.1
     runtime: nvidia
     environment:
       PYTHONPATH: /app
