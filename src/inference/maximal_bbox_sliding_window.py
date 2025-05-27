@@ -123,22 +123,21 @@ class MaximalBBoxSlidingWindow2(VideoSlidingWindow):
                  frame_sample_rate=2, input_size=224,
                  stride=5, bbox_padding=0.05):
         super().__init__(video_path, num_frames, frame_sample_rate, input_size, stride)
-        # assert isinstance(detector, SessionJSON), "Detector should be an instance of SessionJSON"
         self.detector = detector
         self.bbox_padding = bbox_padding
-        self.detection_cache = OrderedDict()  # Cache for storing detections by frame index
-        self.max_cache_size = 128
         self.buffer = []
         self.frame_index = 0
         self.frame_sample_rate = frame_sample_rate
-        self.ann_iterator = self.detector.predict_detached(video=video_path, step=frame_sample_rate)
+        self.ann_iterator = self.detector.predict_detached(input=video_path, stride=frame_sample_rate)
 
     def __iter__(self):
+        # for _inds in self._iterate_sliding_window():
+        #     print(f"_inds: {_inds}")
+
         for detection in self.ann_iterator:
             self.buffer.append(detection.annotation.to_json())
             if len(self.buffer) < self.num_frames:
                 continue
-
             frame_indices = list(range(self.frame_index, self.frame_index + self.num_frames*self.frame_sample_rate, self.frame_sample_rate))
             buffer = self.vr.get_batch(frame_indices).asnumpy()
             w, h = buffer.shape[2], buffer.shape[1]

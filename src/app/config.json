@@ -8,9 +8,14 @@
 	"description": "Mouse action recognition with RT-DETRv2 and MVD",
 	"need_gpu": true,
 	"icon": "https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/OIG1.Q8O44.jpeg",
-	"docker_image": "supervisely/mvd-app:0.0.1",
+	"docker_image": "supervisely/mvd:inference-1.0.2",
 	"instance_version": "6.12.30",
     "context_menu": {
 		"target": ["videos_project", "videos_dataset"]
+	},
+	"modal_template": "src/app/modal.html",
+	"modal_template_state": {
+		"detectorCheckpointPath": "/experiments/mouse-project/rtdetr-detection/checkpoints/best.pth",
+		"MVDCheckpointPath": "/mouse-project/mvd-action-recognition/checkpoint-best/mp_rank_00_model_states.pt"
 	}
 }
