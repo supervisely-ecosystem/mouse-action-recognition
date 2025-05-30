@@ -386,7 +386,6 @@ def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     parser = get_finetune_args()
 
     if hyperparameters["enable_deepspeed"]:    
-        import os
         os.environ["LOGLEVEL"] = "INFO"
         import deepspeed
         from deepspeed import DeepSpeedConfig
