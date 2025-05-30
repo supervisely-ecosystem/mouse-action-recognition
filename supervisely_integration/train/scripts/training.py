@@ -372,22 +372,7 @@ def get_finetune_args():
 
     parser.add_argument("--enable_deepspeed", action="store_true", default=False)
 
-    known_args, _ = parser.parse_known_args([])
-
-    if known_args.enable_deepspeed:
-        try:
-            import deepspeed
-            from deepspeed import DeepSpeedConfig
-            parser = deepspeed.add_config_arguments(parser)
-            ds_init = deepspeed.initialize
-        except Exception as e:
-            print(e)
-            print("Please 'pip install deepspeed'")
-            exit(0)
-    else:
-        ds_init = None
-
-    return parser.parse_args([]), ds_init
+    return parser
 
 def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     train_dataset = project.datasets.get("train")
@@ -398,7 +383,17 @@ def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
         )
 
     # Init Default
-    opts, ds_init = get_finetune_args()
+    parser = get_finetune_args()
+
+    if hyperparameters["enable_deepspeed"]:
+        import deepspeed
+        from deepspeed import DeepSpeedConfig
+        parser = deepspeed.add_config_arguments(parser)
+        ds_init = deepspeed.initialize
+    else:
+        ds_init = None
+    
+    opts = parser.parse_args([])
 
     # Static
     opts.model = "vit_small_patch16_224"
