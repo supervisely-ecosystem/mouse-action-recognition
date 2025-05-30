@@ -17,11 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic-dev \
     libexiv2-dev \
     openmpi-bin \
-    libopenmpi-dev
-
-RUN ln -s /usr/bin/python3 /usr/bin/python \
+    libopenmpi-dev \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/python3 /usr/bin/python
 
 RUN pip install --no-cache-dir \
     torch==1.11.0+cu115 \
@@ -51,5 +50,4 @@ RUN pip install mpi4py
 RUN pip install numba==0.53.1 numpy==1.21 starlette==0.35.0
 
 # Install Supervisely
-RUN pip install supervisely==6.73.370
 RUN pip install supervisely[training]==6.73.370
