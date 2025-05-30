@@ -372,20 +372,22 @@ def get_finetune_args():
 
     parser.add_argument("--enable_deepspeed", action="store_true", default=False)
 
-    ds_init = None
+    known_args, _ = parser.parse_known_args([])
+
+    if known_args.enable_deepspeed:
+        try:
+            import deepspeed
+            from deepspeed import DeepSpeedConfig
+            parser = deepspeed.add_config_arguments(parser)
+            ds_init = deepspeed.initialize
+        except Exception as e:
+            print(e)
+            print("Please 'pip install deepspeed'")
+            exit(0)
+    else:
+        ds_init = None
+
     return parser.parse_args([]), ds_init
-
-def init_deepspeed(opts):
-    import os
-    os.environ["LOGLEVEL"] = "INFO"
-    
-    import deepspeed
-    from deepspeed import DeepSpeedConfig
-
-    # opts = deepspeed.add_config_arguments(opts) # opts must be parser
-    
-    ds_init = deepspeed.initialize
-    return opts, ds_init
 
 def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     train_dataset = project.datasets.get("train")
@@ -418,8 +420,6 @@ def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     # short_side_size = input_size
     setattr(opts, "short_side_size", opts.input_size)
 
-    if opts.enable_deepspeed:
-        opts, ds_init = init_deepspeed(opts)
     return opts, ds_init
 
 def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, model_ema=None):
