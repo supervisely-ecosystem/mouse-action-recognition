@@ -1,4 +1,4 @@
-FROM supervisely/rt-detrv2:1.0.14
+FROM supervisely/rt-detrv2:1.0.20
 
 WORKDIR /app
 
@@ -9,4 +9,4 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* && \
 ENV SERVER_ADDRESS=""
 ENV API_TOKEN=""
 
-ENTRYPOINT ["python3", "supervisely_integration/serve/main.py", "deploy", "--model", "/models/1089_RT-DETRv2/checkpoints/best.pth"]
+ENTRYPOINT ["python3", "supervisely_integration/serve/main.py"]

@@ -1,24 +1,29 @@
 services:
   rt-detr:
-    image: supervisely/mvd:rtdetrv2
+    image: supervisely/mvd:rtdetrv2-1.0.0
     runtime: nvidia
     environment:
       PYTHONPATH: /app
     env_file:
       - .env
     volumes:
-      - ../models:/models
+      - ./models:/models
+    command:
+      - deploy
+      - --model
+      - /models/1089_RT-DETRv2/checkpoints/best.pth
 
   mvd:
-    image: supervisely/mvd:inference
+    image: supervisely/mvd:inference-1.0.2
     runtime: nvidia
     environment:
       PYTHONPATH: /app
+      MODEL_DIR: /models/mvd
     env_file:
       - .env
     volumes:
       - ..:/app
-      - ../models:/models
+      - ${MODEL_DIR}:/models/mvd
       - ${INPUT}:/input
       - ${OUTPUT}:/output
     working_dir: /app

@@ -11,3 +11,7 @@ __pycache__
 supervisely
 output
 app_data
+
+inference_script/output
+inference_script/models
+inference_script/videos
