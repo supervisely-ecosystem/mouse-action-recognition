@@ -2,6 +2,10 @@ import os
 from supervisely_integration.train.trainer import TrainAppMVD
 from supervisely_integration.train.scripts.training import finetune, get_train_args
 
+# Do not remove imports!
+import deepspeed
+from deepspeed import DeepSpeedConfig
+from mpi4py import MPI
 
 base_path = "supervisely_integration/train"
 train = TrainAppMVD(

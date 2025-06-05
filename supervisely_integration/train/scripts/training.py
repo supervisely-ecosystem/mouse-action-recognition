@@ -385,7 +385,7 @@ def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     # Init Default
     parser = get_finetune_args()
 
-    if hyperparameters["enable_deepspeed"]:    
+    if hyperparameters["enable_deepspeed"]:
         os.environ["LOGLEVEL"] = "INFO"
         import deepspeed
         from deepspeed import DeepSpeedConfig
@@ -411,6 +411,10 @@ def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     for key, value in hyperparameters.items():
         if key == "opt_betas":
             value = tuple(map(float, value.split()))
+        if key == "lr":
+            value = float(value)
+        if key == "weight_decay":
+            value = float(value)
         setattr(opts, key, value)
 
     # short_side_size = input_size
