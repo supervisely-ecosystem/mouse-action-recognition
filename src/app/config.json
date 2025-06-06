@@ -4,7 +4,7 @@
 	"name": "Mouse action recognition",
 	"entrypoint": "PYTHONPATH=/app/repo python3 src/app/main.py",
     "headless": true,
-	"categories": ["neural network", "videos", "object detection"],
+	"categories": ["neural network", "videos", "mouse action recognition", "framework:MVD"],
 	"description": "Mouse action recognition with RT-DETRv2 and MVD",
 	"need_gpu": true,
 	"icon": "https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/OIG1.Q8O44.jpeg",
