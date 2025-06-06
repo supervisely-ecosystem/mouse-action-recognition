@@ -2,7 +2,7 @@ import os
 from supervisely_integration.train.trainer import TrainAppMVD
 from supervisely_integration.train.scripts.training import finetune, get_train_args
 
-if os.environ["LOGLEVEL"].lower() == "info":
+if os.environ.get("LOGLEVEL", "").lower() == "info":
     os.environ["LOGLEVEL"] = "INFO"
 # Do not remove the imports!
 import deepspeed
