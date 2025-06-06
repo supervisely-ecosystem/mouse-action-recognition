@@ -9,7 +9,7 @@
 	"need_gpu": true,
 	"icon": "https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/OIG1.Q8O44.jpeg",
 	"docker_image": "supervisely/mvd:inference-1.0.2",
-	"instance_version": "6.12.30",
+	"instance_version": "6.12.44",
     "context_menu": {
 		"target": ["videos_project", "videos_dataset"]
 	},
