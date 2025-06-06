@@ -26,6 +26,15 @@ This app allows you to train models for mouse action recognition using the MVD a
 
 The app supports configurable hyperparameters, train/validation splits, and includes comprehensive evaluation metrics for model performance assessment.
 
+## MVD Model Zoo (Kinetics-400)
+
+| Method | Backbone | Teacher | Epoch | \#Frame |                                                             Pre-train                                                             | Top-1 | Top-5 |
+|:------:|:--------:|:-------:|:-----:|:-------:|:---------------------------------------------------------------------------------------------------------------------------------:|:-----:|:-----:|
+|  MVD   |  ViT-S   |  ViT-B  |  400  | 16x5x3  | [checkpoint](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/mvd_s_from_b_ckpt_399.pth) | 80.6  | 94.7  |
+|  MVD   |  ViT-B   |  ViT-L  |  400  | 16x5x3  | [checkpoint](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/mvd_b_from_l_ckpt_399.pth) | 83.4  | 95.8  |
+|  MVD   |  ViT-L   |  ViT-L  |  400  | 16x5x3  | [checkpoint](https://github.com/supervisely-ecosystem/mouse-action-recognition/releases/download/media/mvd_l_from_l_ckpt_399.pth) | 86.0  | 96.9  |
+
+
 ## Action Classes
 
 The model is trained to recognize the following action classes:

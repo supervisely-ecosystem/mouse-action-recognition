@@ -372,16 +372,7 @@ def get_finetune_args():
 
     parser.add_argument("--enable_deepspeed", action="store_true", default=False)
 
-    ds_init = None
-    return parser.parse_args([]), ds_init
-
-def init_deepspeed(opts):
-    import deepspeed
-    from deepspeed import DeepSpeedConfig
-
-    opts = deepspeed.add_config_arguments(opts)
-    ds_init = deepspeed.initialize
-    return opts, ds_init
+    return parser
 
 def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     train_dataset = project.datasets.get("train")
@@ -392,7 +383,18 @@ def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
         )
 
     # Init Default
-    opts, ds_init = get_finetune_args()
+    parser = get_finetune_args()
+
+    if hyperparameters["enable_deepspeed"]:
+        os.environ["LOGLEVEL"] = "INFO"
+        import deepspeed
+        from deepspeed import DeepSpeedConfig
+        parser = deepspeed.add_config_arguments(parser)
+        ds_init = deepspeed.initialize
+    else:
+        ds_init = None
+    
+    opts = parser.parse_args([])
 
     # Static
     opts.model = "vit_small_patch16_224"
@@ -409,13 +411,15 @@ def get_train_args(project, checkpoint, hyperparameters, log_dir, output_dir):
     for key, value in hyperparameters.items():
         if key == "opt_betas":
             value = tuple(map(float, value.split()))
+        if key == "lr":
+            value = float(value)
+        if key == "weight_decay":
+            value = float(value)
         setattr(opts, key, value)
 
     # short_side_size = input_size
     setattr(opts, "short_side_size", opts.input_size)
 
-    if opts.enable_deepspeed:
-        opts, ds_init = init_deepspeed(opts)
     return opts, ds_init
 
 def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, model_ema=None):

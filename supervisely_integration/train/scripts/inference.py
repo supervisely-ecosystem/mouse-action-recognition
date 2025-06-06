@@ -1,11 +1,5 @@
 import os
 from typing import List
-
-from inference_script.run_inference import (
-    create_meta,
-    inference_directory,
-    inference_video,
-)
 from src.inference.inference import postprocess_predictions
 from supervisely import (
     ProjectMeta,
