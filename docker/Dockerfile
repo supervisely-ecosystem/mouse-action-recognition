@@ -37,17 +37,11 @@ RUN pip install --no-cache-dir \
     pandas==1.1.3 \
     -f https://download.pytorch.org/whl/torch_stable.html
 
-# Install OpenMPI
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openmpi-bin \
-    libopenmpi-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install Python MPI bindings
-RUN pip install mpi4py
+RUN pip install --no-cache-dir mpi4py
 
 # For inference
-RUN pip install numba==0.53.1 numpy==1.21 starlette==0.35.0
+RUN pip install --no-cache-dir numba==0.53.1 numpy==1.21 starlette==0.35.0
 
 # Install Supervisely
-RUN pip install supervisely[training]==6.73.370
+RUN pip install --no-cache-dir supervisely[training]==6.73.372
