@@ -44,4 +44,4 @@ RUN pip install --no-cache-dir mpi4py
 RUN pip install --no-cache-dir numba==0.53.1 numpy==1.21 starlette==0.35.0
 
 # Install Supervisely
-RUN pip install --no-cache-dir supervisely[training]==6.73.372
+RUN pip install --no-cache-dir supervisely[training]==6.73.386
