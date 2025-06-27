@@ -49,5 +49,6 @@ RUN pip install mpi4py
 # For inference
 RUN pip install numba==0.53.1 numpy==1.21 starlette==0.35.0 plotly
 RUN pip install supervisely==6.73.386
+RUN pip install --no-cache-dir "typing_extensions>=4.13,<5"
 
 WORKDIR /app
