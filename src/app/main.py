@@ -74,7 +74,7 @@ def save_predictions(predictions, video_name):
         json.dump(predictions, f, indent=4)
     api.file.upload(team_id=env.team_id(), src=path, dst=f"/mouse-predictions/{video_name}.json")
 
-def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector, video_name=None, pbar=None):
+def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector: ModelAPI, video_name=None, pbar=None):
     if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):
         sly.logger.info(f"Skipping video {video_path} because it already has predictions")
         if pbar is not None:
@@ -84,14 +84,27 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
     if video_name is None:
         video_name = Path(video_path).name
     # Predict
-    predictions_raw = predict_video_with_detector(
-        video_path,
-        model,
-        detector,
-        opts,
-        stride=STRIDE,
-        pbar=pbar
-    )
+    try:
+        predictions_raw = predict_video_with_detector(
+            video_path,
+            model,
+            detector,
+            opts,
+            stride=STRIDE,
+            pbar=pbar
+        )
+    except Exception as e:
+        if detector.is_deployed():
+            raise
+        detector = get_or_create_session(api)
+        predictions_raw = predict_video_with_detector(
+            video_path,
+            model,
+            detector,
+            opts,
+            stride=STRIDE,
+            pbar=pbar
+        )
     predictions = postprocess_predictions(predictions_raw)
 
     # save predictions to teamfiles:
