@@ -462,7 +462,8 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
             tag_dir = f"checkpoint-{epoch_name}"
             final_ckpt_name = f"checkpoint-{epoch_name}.pth"
 
-        saved_dir = model.save_checkpoint(save_dir=checkpoint_dir, tag=tag_dir, client_state=client_state)
+        model.save_checkpoint(save_dir=checkpoint_dir, tag=tag_dir, client_state=client_state)
+        saved_dir = os.path.join(checkpoint_dir, tag_dir)
         if utils.is_main_process():
             src = os.path.join(saved_dir, "mp_rank_00_model_states.pt")
             dst = os.path.join(checkpoint_dir, final_ckpt_name)
