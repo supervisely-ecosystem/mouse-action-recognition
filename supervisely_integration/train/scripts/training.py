@@ -432,7 +432,7 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
         if epoch_name == "best":
             checkpoint_paths = [output_dir / "checkpoints" / ('best.pth')]
         else:
-            checkpoint_paths = [output_dir / "checkpoints" / ('checkpoint-%s.pth' % epoch_name)]
+            checkpoint_paths = [output_dir / "checkpoints" / (f"checkpoint-{epoch_name}.pth")]
         for checkpoint_path in checkpoint_paths:
             to_save = {
                 'model': model_without_ddp.state_dict(),
@@ -452,9 +452,12 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
         client_state = {'epoch': epoch}
         if model_ema is not None:
             client_state['model_ema'] = utils.get_state_dict(model_ema)
-        model.save_checkpoint(save_dir=args.output_dir, tag="checkpoint-%s" % epoch_name, client_state=client_state)
-        logger.debug(f"2. model.save_checkpoint. Saved checkpoint to '{checkpoint_path}'")
-        # print(f"2. model.save_checkpoint. Saved checkpoint to '{checkpoint_path}'")
+        # Save checkpoints to <output_dir>/checkpoints/<tag>
+        checkpoint_dir = os.path.join(args.output_dir, "checkpoints")
+        Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
+        model.save_checkpoint(save_dir=checkpoint_dir, tag=f"checkpoint-{epoch_name}", client_state=client_state)
+        logger.debug(f"2. model.save_checkpoint. Saved checkpoint to '{checkpoint_dir}/checkpoint-{epoch_name}'")
+        # print(f"2. model.save_checkpoint. Saved checkpoint to '{checkpoint_dir}/checkpoint-{epoch_name}'")
         
 def ensure_best_ckpt(output_dir):
     ckpt_dir = os.path.join(output_dir, "checkpoints")
