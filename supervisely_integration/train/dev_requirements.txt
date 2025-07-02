@@ -1,5 +1,4 @@
 # git+https://github.com/supervisely/supervisely.git@some-test-branch
-# pip install git+https://github.com/supervisely/supervisely.git@train-app-tags-selector
 
 # official requirements
 supervisely[training]
@@ -22,5 +21,6 @@ scipy
 # tensorboardX
 # decord
 # einops
+# numba
 
 
