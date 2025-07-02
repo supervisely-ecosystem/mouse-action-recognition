@@ -454,12 +454,21 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
 
         checkpoint_dir = os.path.join(args.output_dir, "checkpoints")
         Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
+
         if epoch_name == "best":
-            checkpoint_tag = "best.pth"
+            tag_dir = "best"
+            final_ckpt_name = "best.pth"
         else:
-            checkpoint_tag = f"checkpoint-{epoch_name}.pth"
-        model.save_checkpoint(save_dir=checkpoint_dir, tag=checkpoint_tag, client_state=client_state)
-        print(f"Saved checkpoint to '{checkpoint_dir}/{checkpoint_tag}'")
+            tag_dir = f"checkpoint-{epoch_name}"
+            final_ckpt_name = f"checkpoint-{epoch_name}.pth"
+
+        saved_dir = model.save_checkpoint(save_dir=checkpoint_dir, tag=tag_dir, client_state=client_state)
+        if utils.is_main_process():
+            src = os.path.join(saved_dir, "mp_rank_00_model_states.pt")
+            dst = os.path.join(checkpoint_dir, final_ckpt_name)
+            shutil.move(src, dst)
+            shutil.rmtree(saved_dir)
+            print(f"Saved checkpoint to '{dst}'")
         
 def ensure_best_ckpt(output_dir):
     ckpt_dir = os.path.join(output_dir, "checkpoints")
