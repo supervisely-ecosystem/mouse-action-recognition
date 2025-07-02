@@ -465,7 +465,10 @@ def ensure_best_ckpt(output_dir):
     best_ckpt_path = os.path.join(ckpt_dir, best_ckpt_name)
     if os.path.exists(best_ckpt_path):
         return
+    all_files = [f for f in os.listdir(ckpt_dir)]
+    logger.debug(f"All files in {ckpt_dir}: {all_files}")
     all_ckpts = [f for f in os.listdir(ckpt_dir) if f.endswith(".pth")]
+    logger.debug(f"All checkpoints in {ckpt_dir}: {all_ckpts}")
     if len(all_ckpts) == 0:
         raise FileNotFoundError(f"No checkpoints found in {ckpt_dir}")
     last_ckpt_name = all_ckpts[-1]
