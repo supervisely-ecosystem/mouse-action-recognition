@@ -446,18 +446,20 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
                 to_save['model_ema'] = utils.get_state_dict(model_ema)
 
             utils.save_on_master(to_save, checkpoint_path)
-            logger.debug(f"1. save_on_master. Saved checkpoint to '{checkpoint_path}'")
-            # print(f"1. save_on_master. Saved checkpoint to '{checkpoint_path}'")
+            print(f"Saved checkpoint to '{checkpoint_path}'")
     else:
         client_state = {'epoch': epoch}
         if model_ema is not None:
             client_state['model_ema'] = utils.get_state_dict(model_ema)
-        # Save checkpoints to <output_dir>/checkpoints/<tag>
+
         checkpoint_dir = os.path.join(args.output_dir, "checkpoints")
         Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
-        model.save_checkpoint(save_dir=checkpoint_dir, tag=f"checkpoint-{epoch_name}", client_state=client_state)
-        logger.debug(f"2. model.save_checkpoint. Saved checkpoint to '{checkpoint_dir}/checkpoint-{epoch_name}'")
-        # print(f"2. model.save_checkpoint. Saved checkpoint to '{checkpoint_dir}/checkpoint-{epoch_name}'")
+        if epoch_name == "best":
+            checkpoint_tag = "best.pth"
+        else:
+            checkpoint_tag = f"checkpoint-{epoch_name}.pth"
+        model.save_checkpoint(save_dir=checkpoint_dir, tag=checkpoint_tag, client_state=client_state)
+        print(f"Saved checkpoint to '{checkpoint_dir}/{checkpoint_tag}'")
         
 def ensure_best_ckpt(output_dir):
     ckpt_dir = os.path.join(output_dir, "checkpoints")
@@ -465,12 +467,9 @@ def ensure_best_ckpt(output_dir):
     best_ckpt_path = os.path.join(ckpt_dir, best_ckpt_name)
     if os.path.exists(best_ckpt_path):
         return
-    all_files = [f for f in os.listdir(ckpt_dir)]
-    logger.debug(f"All files in {ckpt_dir}: {all_files}")
     all_ckpts = [f for f in os.listdir(ckpt_dir) if f.endswith(".pth")]
-    logger.debug(f"All checkpoints in {ckpt_dir}: {all_ckpts}")
     if len(all_ckpts) == 0:
-        raise FileNotFoundError(f"No checkpoints found in {ckpt_dir}")
+        raise FileNotFoundError(f"No checkpoints found in directory '{ckpt_dir}'")
     last_ckpt_name = all_ckpts[-1]
     last_ckpt_path = os.path.join(ckpt_dir, last_ckpt_name)
     shutil.copy(last_ckpt_path, best_ckpt_path)
