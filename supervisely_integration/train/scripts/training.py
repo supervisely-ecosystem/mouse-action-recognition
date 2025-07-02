@@ -28,6 +28,7 @@ from optim_factory import (
     create_optimizer,
     get_parameter_groups,
 )
+
 from supervisely import logger
 from supervisely.nn.training import train_logger
 from utils import NativeScalerWithGradNormCount as NativeScaler
@@ -445,12 +446,16 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
                 to_save['model_ema'] = utils.get_state_dict(model_ema)
 
             utils.save_on_master(to_save, checkpoint_path)
+            logger.debug(f"1. save_on_master. Saved checkpoint to '{checkpoint_path}'")
+            # print(f"1. save_on_master. Saved checkpoint to '{checkpoint_path}'")
     else:
         client_state = {'epoch': epoch}
         if model_ema is not None:
             client_state['model_ema'] = utils.get_state_dict(model_ema)
         model.save_checkpoint(save_dir=args.output_dir, tag="checkpoint-%s" % epoch_name, client_state=client_state)
-
+        logger.debug(f"2. model.save_checkpoint. Saved checkpoint to '{checkpoint_path}'")
+        # print(f"2. model.save_checkpoint. Saved checkpoint to '{checkpoint_path}'")
+        
 def ensure_best_ckpt(output_dir):
     ckpt_dir = os.path.join(output_dir, "checkpoints")
     best_ckpt_name = "best.pth"
@@ -463,7 +468,7 @@ def ensure_best_ckpt(output_dir):
     last_ckpt_name = all_ckpts[-1]
     last_ckpt_path = os.path.join(ckpt_dir, last_ckpt_name)
     shutil.copy(last_ckpt_path, best_ckpt_path)
-    logger.info(f"Best checkpoint ('{best_ckpt_name}') not found in checkpoints directory, best checkpoint is set to the last checkpoint ('{last_ckpt_name}')")
+    print(f"Best checkpoint ('{best_ckpt_name}') not found in checkpoints directory, best checkpoint is set to the last checkpoint ('{last_ckpt_name}')")
     return
 
 def build_dataset(is_train, test_mode, args):
