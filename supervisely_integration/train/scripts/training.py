@@ -2,6 +2,7 @@ import argparse
 import datetime
 import json
 import os
+import shutil
 import time
 from collections import OrderedDict
 from functools import partial
@@ -27,6 +28,8 @@ from optim_factory import (
     create_optimizer,
     get_parameter_groups,
 )
+
+from supervisely import logger
 from supervisely.nn.training import train_logger
 from utils import NativeScalerWithGradNormCount as NativeScaler
 from utils import multiple_samples_collate
@@ -429,7 +432,7 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
         if epoch_name == "best":
             checkpoint_paths = [output_dir / "checkpoints" / ('best.pth')]
         else:
-            checkpoint_paths = [output_dir / "checkpoints" / ('checkpoint-%s.pth' % epoch_name)]
+            checkpoint_paths = [output_dir / "checkpoints" / (f"checkpoint-{epoch_name}.pth")]
         for checkpoint_path in checkpoint_paths:
             to_save = {
                 'model': model_without_ddp.state_dict(),
@@ -443,11 +446,45 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mo
                 to_save['model_ema'] = utils.get_state_dict(model_ema)
 
             utils.save_on_master(to_save, checkpoint_path)
+            print(f"Saved checkpoint to '{checkpoint_path}'")
     else:
         client_state = {'epoch': epoch}
         if model_ema is not None:
             client_state['model_ema'] = utils.get_state_dict(model_ema)
-        model.save_checkpoint(save_dir=args.output_dir, tag="checkpoint-%s" % epoch_name, client_state=client_state)
+
+        checkpoint_dir = os.path.join(args.output_dir, "checkpoints")
+        Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
+
+        if epoch_name == "best":
+            tag_dir = "best"
+            final_ckpt_name = "best.pth"
+        else:
+            tag_dir = f"checkpoint-{epoch_name}"
+            final_ckpt_name = f"checkpoint-{epoch_name}.pth"
+
+        model.save_checkpoint(save_dir=checkpoint_dir, tag=tag_dir, client_state=client_state)
+        saved_dir = os.path.join(checkpoint_dir, tag_dir)
+        if utils.is_main_process():
+            src = os.path.join(saved_dir, "mp_rank_00_model_states.pt")
+            dst = os.path.join(checkpoint_dir, final_ckpt_name)
+            shutil.move(src, dst)
+            shutil.rmtree(saved_dir)
+            print(f"Saved checkpoint to '{dst}'")
+        
+def ensure_best_ckpt(output_dir):
+    ckpt_dir = os.path.join(output_dir, "checkpoints")
+    best_ckpt_name = "best.pth"
+    best_ckpt_path = os.path.join(ckpt_dir, best_ckpt_name)
+    if os.path.exists(best_ckpt_path):
+        return
+    all_ckpts = [f for f in os.listdir(ckpt_dir) if f.endswith(".pth")]
+    if len(all_ckpts) == 0:
+        raise FileNotFoundError(f"No checkpoints found in directory '{ckpt_dir}'")
+    last_ckpt_name = all_ckpts[-1]
+    last_ckpt_path = os.path.join(ckpt_dir, last_ckpt_name)
+    shutil.copy(last_ckpt_path, best_ckpt_path)
+    print(f"Best checkpoint ('{best_ckpt_name}') not found in checkpoints directory, best checkpoint is set to the last checkpoint ('{last_ckpt_name}')")
+    return
 
 def build_dataset(is_train, test_mode, args):
     if args.data_set == "Kinetics-400":
@@ -994,6 +1031,7 @@ def finetune(args, ds_init):
                 ) as f:
                     f.write(json.dumps(log_stats) + "\n")
 
+    ensure_best_ckpt(args.output_dir)
     train_logger.train_finished()
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
