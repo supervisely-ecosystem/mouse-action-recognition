@@ -1,6 +1,3 @@
-# All available options for the training app
-
-# ==================== GUI / UX ====================
 # ==================== Model Selection =============
 model_selector:
   enabled: true
@@ -26,9 +23,9 @@ train_val_splits_selector:
 
 # ==================== Options ====================
 # How to display training results in the GUI:
-#   report    – generate a detailed experiment page (default);
-#   directory – show only a link to the output folder instead of the report.
-output_mode: directory
+#   if true    – generate experiment page with training results
+#   if false   – show only a link to the output folder instead of the report
+generate_report: false
 
 # Add selector for selecting cuda device
 device_selector: false
@@ -58,8 +55,8 @@ export_tensorrt_supported: false
 #           - directory should contain:
 #             - README.md
 #             - demo_pytorch.py
-#             - demo_onnx.py
-#             - demo_tensorrt.py
+#             - demo_onnx.py (if export_onnx_supported is true)
+#             - demo_tensorrt.py (if export_tensorrt_supported is true)
 # demo:
 #   branch: "main"
 #   path: "supervisely_integration/demo"
