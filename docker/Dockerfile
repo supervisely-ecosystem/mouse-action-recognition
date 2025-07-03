@@ -44,7 +44,7 @@ RUN pip install --no-cache-dir mpi4py
 RUN pip install --no-cache-dir numba==0.53.1 numpy==1.21 starlette==0.35.0
 
 # Install Supervisely
-RUN pip install --no-cache-dir supervisely[training]==6.73.392
-RUN pip install --no-cache-dir supervisely[model-benchmark]==6.73.392
+RUN pip install --no-cache-dir supervisely[training]==6.73.393
+RUN pip install --no-cache-dir supervisely[model-benchmark]==6.73.393
 
-LABEL python_sdk_version=6.73.392
+LABEL python_sdk_version=6.73.393
