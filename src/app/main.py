@@ -166,7 +166,7 @@ def get_or_create_session(api: sly.Api) -> ModelAPI:
                     RT_DETR_STOP_SESSION_FLAG = False
                     model = api.nn.connect(task["id"])
                     if not model.is_deployed():
-                        model.load(REMOTE_RT_DETR_CHECKPOINT_PATH)
+                        model.load(REMOTE_RT_DETR_CHECKPOINT_PATH, runtime="PyTorch", device="cuda")
                     return model
     agents = api.agent.get_list_available(team_id, has_gpu=True)
     if len(agents) == 0:
