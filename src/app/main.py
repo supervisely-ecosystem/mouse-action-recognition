@@ -162,10 +162,12 @@ def get_or_create_session(api: sly.Api) -> ModelAPI:
     for app in apps:
         if rt_detr_slug.lower() == app.slug.lower():
             for task in app.tasks:
-                print(json.dumps(task, indent=4))
                 if task["meta"]["name"] == RT_DETR_SESSION_NAME:
                     RT_DETR_STOP_SESSION_FLAG = False
-                    return api.nn.connect(task["id"])
+                    model = api.nn.connect(task["id"])
+                    if not model.is_deployed():
+                        model.load(REMOTE_RT_DETR_CHECKPOINT_PATH, runtime="PyTorch", device="cuda")
+                    return model
     agents = api.agent.get_list_available(team_id, has_gpu=True)
     if len(agents) == 0:
         raise RuntimeError("No agents with GPU available")
