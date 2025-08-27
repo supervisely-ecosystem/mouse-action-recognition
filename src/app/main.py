@@ -11,6 +11,7 @@ from supervisely import ProjectMeta, VideoProject, OpenMode, VideoDataset, Video
 from supervisely.nn.model.model_api import ModelAPI
 from supervisely.project.download import download_async
 from supervisely.io.fs import ensure_base_path
+from supervisely.io.json import load_json_file
 from tqdm import tqdm
 
 from src.inference.inference import predict_video_with_detector, load_mvd, postprocess_predictions
@@ -36,16 +37,12 @@ dotenv.load_dotenv("local.env")
 api = sly.Api()
 
 
-def create_meta(class_names) -> ProjectMeta:
-    tag_metas = [sly.TagMeta(class_name+"_prediction", sly.TagValueType.ANY_NUMBER) for class_name in class_names]
+def create_model_meta(class_names) -> ProjectMeta:
+    tag_metas = [sly.TagMeta(class_name, sly.TagValueType.ANY_NUMBER) for class_name in class_names]
     meta = ProjectMeta(tag_metas=tag_metas)
     return meta
 
-
 def merge_anns(source_ann: VideoAnnotation, new_ann: VideoAnnotation) -> VideoAnnotation:
-    # only merge if there are no predictions in the source annotation
-    if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):
-        return None
     source_ann = source_ann.clone(tags=source_ann.tags.add_items([tag for tag in new_ann.tags]))
     return source_ann
 
@@ -55,10 +52,9 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
     tags = []
     for prediction in predictions:
         tag_name = label_to_tag_name[prediction["label"]]
-        pred_tag_name = tag_name + "_prediction"
+        pred_tag_name = tag_name
         tag_meta = project_meta.get_tag_meta(pred_tag_name)
-        if tag_meta is None:
-            continue
+        assert tag_meta is not None, f"Tag meta '{pred_tag_name}' not found in project meta"
         confidence = prediction["confidence"]
         frame_range = prediction["frame_range"]
         tag = sly.VideoTag(tag_meta, frame_range=frame_range, value=confidence)
@@ -67,22 +63,17 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
     return ann
 
 
-def save_predictions(predictions, video_name):
-    path = f"output/{video_name}.json"
-    ensure_base_path(path)
-    with open(path, "w") as f:
-        json.dump(predictions, f, indent=4)
-    api.file.upload(team_id=env.team_id(), src=path, dst=f"/mouse-predictions/{video_name}.json")
+# def save_predictions(predictions, video_name):
+#     path = f"output/{video_name}.json"
+#     ensure_base_path(path)
+#     with open(path, "w") as f:
+#         json.dump(predictions, f, indent=4)
+#     api.file.upload(team_id=env.team_id(), src=path, dst=f"/mouse-predictions/{video_name}.json")
 
 def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector: ModelAPI, video_name=None, pbar=None):
-    if any([tag for tag in source_ann.tags if tag.meta.name.endswith("_prediction")]):
-        sly.logger.info(f"Skipping video {video_path} because it already has predictions")
-        if pbar is not None:
-            pbar.update(source_ann.frames_count)
-        return False
-
     if video_name is None:
         video_name = Path(video_path).name
+
     # Predict
     try:
         predictions_raw = predict_video_with_detector(
@@ -108,22 +99,15 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
     predictions = postprocess_predictions(predictions_raw)
 
     # save predictions to teamfiles:
-    save_predictions(predictions, video_name)
+    # save_predictions(predictions, video_name)
 
-    # Visualize predictions
     import decord  # WARNING: if import decord in top, it will crash with 'Segmentation fault (core dumped)'
     vr = decord.VideoReader(video_path)
     frames_count = len(vr)
     frame_size = (vr[0].shape[0], vr[0].shape[1]) # h, w
-    try:
-        annotation = merge_anns(source_ann, ann_from_predictions(frame_size, frames_count, predictions, output_meta, class_names))
-        if annotation is not None:
-            output_dataset.add_item_file(video_name, None, annotation)
-        return True
-    except Exception:
-        sly.logger.warning("Unable to save annotation in Supervisely format", exc_info=True)
-        traceback.print_exc()
-        return False
+    annotation = merge_anns(source_ann, ann_from_predictions(frame_size, frames_count, predictions, output_meta, class_names))
+    output_dataset.add_item_file(video_name, None, annotation)
+    return annotation
 
 
 def get_total(project: VideoProject):
@@ -139,7 +123,7 @@ def get_total(project: VideoProject):
 def inference_project(project: VideoProject, project_name: str, model, opts, detector):
     class_names = ["Self-Grooming", "Head/Body TWITCH"]
 
-    model_meta = create_meta(class_names)
+    model_meta = create_model_meta(class_names)
     project_meta = project.meta.merge(model_meta)
     project.set_meta(project_meta)
 
@@ -150,8 +134,8 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
             dataset: VideoDataset
             for _, video_path, ann_path in dataset.items():
                 source_ann = VideoAnnotation.load_json_file(ann_path, project_meta)
-                if inference_video(video_path, source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar):
-                    updated_anns.append(ann_path)
+                inference_video(video_path, source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
+                updated_anns.append(ann_path)
     return updated_anns
 
 def get_or_create_session(api: sly.Api) -> ModelAPI:
@@ -177,15 +161,17 @@ def get_or_create_session(api: sly.Api) -> ModelAPI:
     return model
 
 def check_and_update_ann(ann_path, project_meta):
-    video_annotation = VideoAnnotation.from_json(json.load(open(ann_path, 'r')), project_meta)
+    src_ann_json = load_json_file(ann_path)
+    video_annotation = VideoAnnotation.from_json(src_ann_json, project_meta)
     has_predictions = False
     filtered_tags = []
     for tag in video_annotation.tags:
         if tag.meta.name == "confidence":
             filtered_tags.append(tag)
-        if tag.meta.name.endswith("_prediction"):
             has_predictions = True
-            filtered_tags.append(tag)
+        # if tag.meta.name.endswith("_prediction"):
+        #     has_predictions = True
+        #     filtered_tags.append(tag)
     if has_predictions:
         video_annotation = video_annotation.clone(tags=VideoTagCollection(filtered_tags))
         with open(ann_path, "w") as f:
