@@ -189,9 +189,15 @@ def main():
     sly.logger.info("Creating session with detector")
     detector = get_or_create_session(api)
     sly.logger.info("Loading model")
-    size = api.file.get_directory_size(team_id=team_id, path=REMOTE_MVD_MODEL_DIR)
+    mvd_checkpoint_file_path = REMOTE_MVD_CHECKPOINT_PATH
+    mvd_checkpoint_file_fino = api.file.get_info_by_path(team_id=team_id, remote_path=mvd_checkpoint_file_path)
+    mvd_config_file_path = Path(REMOTE_MVD_MODEL_DIR, "config.txt").as_posix()
+    mvd_config_file_info = api.file.get_info_by_path(team_id=team_id, remote_path=mvd_config_file_path)
+    mvd_config_local_path = str(Path(MVD_MODEL_DIR, "config.txt"))
+    size = mvd_checkpoint_file_fino.sizeb + mvd_config_file_info.sizeb
     with tqdm(total=size, desc="Downloading MVD model", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
-        api.file.download_directory(team_id=team_id, remote_path=REMOTE_MVD_MODEL_DIR, local_save_path=MVD_MODEL_DIR, progress_cb=pbar.update)
+        api.file.download(team_id=team_id, remote_path=mvd_checkpoint_file_path, local_save_path=MVD_CHECKPOINT, progress_cb=pbar.update)
+        api.file.download(team_id=team_id, remote_path=mvd_config_file_path, local_save_path=mvd_config_local_path, progress_cb=pbar.update)
     model, opts = load_mvd(MVD_CHECKPOINT)
 
     # Download project
