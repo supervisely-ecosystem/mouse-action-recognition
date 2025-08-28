@@ -216,7 +216,7 @@ def main():
         for dataset in project.datasets:
             dataset: VideoDataset
             for video_name, _, ann_path in dataset.items():
-                if ann_path in updated_ann_paths and check_and_update_ann(ann_path, project.meta):
+                if ann_path in updated_ann_paths:
                     video_info = dataset.get_item_info(item_name=video_name)
                     video_ids.append(video_info.id)
                     ann_paths.append(ann_path)
