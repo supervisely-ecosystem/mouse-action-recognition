@@ -201,9 +201,10 @@ def main():
     
     # Swap classes back if this is the original MVD model (trained with the old class order)
     experiment_info_path = Path(REMOTE_MVD_MODEL_DIR, "experiment_info.json").as_posix()
-    if api.file.exists(team_id=team_id, remote_path=experiment_info_path):
+    if not api.file.exists(team_id=team_id, remote_path=experiment_info_path):
         global MODEL_CLASSES
         MODEL_CLASSES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
+        sly.logger.info("Detected the original MVD model, changing class order")
     model, opts = load_mvd(MVD_CHECKPOINT)
 
     # Download project
