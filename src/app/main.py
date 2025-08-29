@@ -27,7 +27,7 @@ REMOTE_MVD_MODEL_DIR = str(Path(REMOTE_MVD_CHECKPOINT_PATH).parent.parent)
 MVD_CHECKPOINT_NAME = str(Path(REMOTE_MVD_CHECKPOINT_PATH).name)
 MVD_CHECKPOINT = REMOTE_MVD_CHECKPOINT_PATH.replace(REMOTE_MVD_MODEL_DIR, MVD_MODEL_DIR)
 STRIDE = 8  # 8x2=16 (16 stride, 32 context window)
-MODEL_CLASSES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
+MODEL_CLASSES = ["idle", "Head/Body TWITCH", "Self-Grooming"]  # classes have been swapped to match those in training
 RT_DETR_STOP_SESSION_FLAG = False
 
 dotenv.load_dotenv(os.path.expanduser("~/supervisely.env"))
@@ -46,7 +46,7 @@ def merge_anns(source_ann: VideoAnnotation, new_ann: VideoAnnotation) -> VideoAn
     source_ann = source_ann.clone(tags=source_ann.tags.add_items([tag for tag in new_ann.tags]))
     return source_ann
 
-def ann_from_predictions(frame_size, frames_count, predictions, project_meta: ProjectMeta, class_names):
+def ann_from_predictions(frame_size, frames_count, predictions, project_meta: ProjectMeta):
     print("frame size:", frame_size)
     label_to_tag_name = {i: class_name for i, class_name in enumerate(MODEL_CLASSES)}
     tags = []
@@ -70,7 +70,7 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
 #         json.dump(predictions, f, indent=4)
 #     api.file.upload(team_id=env.team_id(), src=path, dst=f"/mouse-predictions/{video_name}.json")
 
-def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, class_names, model, opts, detector: ModelAPI, video_name=None, pbar=None):
+def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: VideoDataset, output_meta, model, opts, detector: ModelAPI, video_name=None, pbar=None):
     if video_name is None:
         video_name = Path(video_path).name
 
@@ -105,7 +105,7 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
     vr = decord.VideoReader(video_path)
     frames_count = len(vr)
     frame_size = (vr[0].shape[0], vr[0].shape[1]) # h, w
-    annotation = merge_anns(source_ann, ann_from_predictions(frame_size, frames_count, predictions, output_meta, class_names))
+    annotation = merge_anns(source_ann, ann_from_predictions(frame_size, frames_count, predictions, output_meta))
     output_dataset.add_item_file(video_name, None, annotation)
     return annotation
 
@@ -134,7 +134,7 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
             dataset: VideoDataset
             for _, video_path, ann_path in dataset.items():
                 source_ann = VideoAnnotation.load_json_file(ann_path, project_meta)
-                inference_video(video_path, source_ann, dataset, project_meta, class_names, model, opts, detector, pbar=pbar)
+                inference_video(video_path, source_ann, dataset, project_meta, model, opts, detector, pbar=pbar)
                 updated_anns.append(ann_path)
     return updated_anns
 
@@ -198,6 +198,12 @@ def main():
     with tqdm(total=size, desc="Downloading MVD model", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
         api.file.download(team_id=team_id, remote_path=mvd_checkpoint_file_path, local_save_path=MVD_CHECKPOINT, progress_cb=pbar.update)
         api.file.download(team_id=team_id, remote_path=mvd_config_file_path, local_save_path=mvd_config_local_path, progress_cb=pbar.update)
+    
+    # Swap classes back if this is the original MVD model (trained with the old class order)
+    experiment_info_path = Path(REMOTE_MVD_MODEL_DIR, "experiment_info.json").as_posix()
+    if api.file.exists(team_id=team_id, remote_path=experiment_info_path):
+        global MODEL_CLASSES
+        MODEL_CLASSES = ["idle", "Self-Grooming", "Head/Body TWITCH"]
     model, opts = load_mvd(MVD_CHECKPOINT)
 
     # Download project
