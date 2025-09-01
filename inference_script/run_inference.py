@@ -34,7 +34,6 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
         frame_range = prediction["frame_range"]
         tag = sly.VideoTag(tag_meta, frame_range=frame_range)
         conf_tag = sly.VideoTag(conf_tag_meta, value=confidence, frame_range=frame_range)
-        sly.logger.debug(f"Tag: {tag.name}, Conf Tag: {conf_tag.name}")
         tags.extend([tag, conf_tag])
     ann = VideoAnnotation(img_size=frame_size, frames_count=frames_count, tags=sly.VideoTagCollection(tags))
     return ann
