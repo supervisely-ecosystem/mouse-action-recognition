@@ -105,7 +105,11 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
     vr = decord.VideoReader(video_path)
     frames_count = len(vr)
     frame_size = (vr[0].shape[0], vr[0].shape[1]) # h, w
-    annotation = merge_anns(source_ann, ann_from_predictions(frame_size, frames_count, predictions, output_meta))
+    sly.logger.debug(f"Source ann: {source_ann.tags}")
+    new_ann = ann_from_predictions(frame_size, frames_count, predictions, output_meta)
+    sly.logger.debug(f"New ann: {new_ann.tags}")
+    annotation = merge_anns(source_ann, new_ann)
+    sly.logger.debug(f"Merged ann: {annotation.tags}")
     output_dataset.add_item_file(video_name, None, annotation)
     return annotation
 
