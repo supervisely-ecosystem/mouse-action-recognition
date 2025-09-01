@@ -43,15 +43,11 @@ def create_model_meta(class_names) -> ProjectMeta:
     return meta
 
 def merge_anns(source_ann: VideoAnnotation, new_ann: VideoAnnotation) -> VideoAnnotation:
+    """Do not use, as video annotations can only be appended to existing ones on instance. Merging is not needed"""
     src_tags = [tag for tag in source_ann.tags]
-    sly.logger.debug(f"Source tags: {src_tags}")
     new_tags = [tag for tag in new_ann.tags]
-    sly.logger.debug(f"New tags: {new_tags}")
     merged_tags = src_tags + new_tags
-    sly.logger.debug(f"Merged tags: {merged_tags}")
     merged_tags_col = sly.VideoTagCollection(merged_tags)
-    sly.logger.debug(f"Merged tags collection: {merged_tags_col.items()}")
-    sly.logger.debug(f"Merged tags collection json: {merged_tags_col.to_json()}")
     source_ann = source_ann.clone(tags=merged_tags_col)
     return source_ann
 
@@ -114,10 +110,9 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
     vr = decord.VideoReader(video_path)
     frames_count = len(vr)
     frame_size = (vr[0].shape[0], vr[0].shape[1]) # h, w
-    new_ann = ann_from_predictions(frame_size, frames_count, predictions, output_meta)
-    annotation = merge_anns(source_ann, new_ann)
+    annotation = ann_from_predictions(frame_size, frames_count, predictions, output_meta)
+    # annotation = merge_anns(source_ann, new_ann)
     output_dataset.add_item_file(video_name, None, annotation)
-    sly.logger.debug(f"Annotation: {annotation.to_json()}")
     return annotation
 
 
