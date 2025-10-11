@@ -12,7 +12,7 @@
   <a href="#acknowledgment">Acknowledgment</a>
 </p>
 
-[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](../../../../../../supervisely-ecosystem/mouse-action-recognition/supervisely_integration/train)
+[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](https://ecosystem.supervisely.com/apps/supervisely-ecosystem/mouse-action-recognition/supervisely_integration/train)
 [![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervisely.com/slack)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/supervisely-ecosystem/mouse-action-recognition)
 [![views](https://app.supervisely.com/img/badges/views/supervisely-ecosystem/mouse-action-recognition/supervisely_integration/train.png)](https://supervisely.com)
