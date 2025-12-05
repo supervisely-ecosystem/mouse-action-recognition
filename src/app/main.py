@@ -10,7 +10,7 @@ import supervisely.io.env as env
 from supervisely import ProjectMeta, VideoProject, OpenMode, VideoDataset, VideoAnnotation, VideoTagCollection
 from supervisely.nn.model.model_api import ModelAPI
 from supervisely.project.download import download_async
-from supervisely.io.fs import ensure_base_path
+from supervisely.io.fs import ensure_base_path, mkdir, silent_remove
 from supervisely.io.json import load_json_file
 from tqdm import tqdm
 
@@ -67,6 +67,37 @@ def ann_from_predictions(frame_size, frames_count, predictions, project_meta: Pr
     ann = VideoAnnotation(img_size=frame_size, frames_count=frames_count, tags=sly.VideoTagCollection(tags))
     return ann
 
+def read_or_redownload_video(dataset: VideoDataset, video_name: str, video_path: str):
+    import decord
+
+    def try_open(path: str):
+        try:
+            vr = decord.VideoReader(path)
+            return len(vr)
+        except Exception:
+            return None
+
+    frames_count = try_open(video_path)
+    if frames_count is not None:
+        return frames_count
+
+    sly.logger.warning(f"Video '{video_name}' is unreadable. Trying to re-download...")
+    info = dataset.get_item_info(item_name=video_name)
+
+    try:
+        silent_remove(video_path)
+        api.video.download_path(info.id, video_path)
+    except Exception as e:
+        sly.logger.warning(f"Re-download attempt failed for '{video_name}': {e}")
+        return None
+    
+    frames_count = try_open(video_path)
+    if frames_count is not None:
+        sly.logger.info(f"Successfully re-downloaded and read video '{video_name}'")
+        return frames_count
+
+    sly.logger.warning(f"File '{video_name}' still unreadable after re-download attempt")
+    return None
 
 # def save_predictions(predictions, video_name):
 #     path = f"output/{video_name}.json"
@@ -117,13 +148,18 @@ def inference_video(video_path, source_ann: VideoAnnotation, output_dataset: Vid
 
 
 def get_total(project: VideoProject):
-    import decord
     total = 0
+
     for dataset in project.datasets:
-        for _, video_path, _ in dataset.items():
-            vr = decord.VideoReader(video_path)
-            frames_count = len(vr)
-            total += frames_count
+        dataset: VideoDataset
+        with tqdm(total=len(dataset.items()), desc=f"Getting total frames for dataset: '{dataset.name}'") as pbar:
+            for video_name, video_path, _ in dataset.items():
+                frames_count = read_or_redownload_video(dataset, video_name, video_path)
+                if frames_count is None:
+                    pbar.update(1)
+                    continue
+                total += frames_count
+                pbar.update(1)
     return total
 
 def inference_project(project: VideoProject, project_name: str, model, opts, detector):
@@ -138,10 +174,14 @@ def inference_project(project: VideoProject, project_name: str, model, opts, det
     with tqdm(total=total, desc=f'Predicting on project "{project_name}"') as pbar:
         for dataset in project.datasets:
             dataset: VideoDataset
-            for _, video_path, ann_path in dataset.items():
+            for video_name, video_path, ann_path in dataset.items():
                 source_ann = VideoAnnotation.load_json_file(ann_path, project_meta)
-                inference_video(video_path, source_ann, dataset, project_meta, model, opts, detector, pbar=pbar)
-                updated_anns.append(ann_path)
+                try:
+                    inference_video(video_path, source_ann, dataset, project_meta, model, opts, detector, pbar=pbar)
+                    updated_anns.append(ann_path)
+                except Exception as e:
+                    sly.logger.warning(f"Skipping inference for '{video_name}' due to read error: {e}")
+                    continue
     return updated_anns
 
 def get_or_create_session(api: sly.Api) -> ModelAPI:
@@ -215,6 +255,9 @@ def main():
 
     # Download project
     project_path = "input/project"
+    if os.path.exists(project_path):
+        mkdir(project_path, True)
+
     sly.logger.info(f"Downloading project {project_id}{'' if dataset_id is None else ', dataset ' + str(dataset_id)}")
     download_async(api, project_id, dest_dir=project_path, dataset_ids=dataset_ids, save_video_info=True)
 
