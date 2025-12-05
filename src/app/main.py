@@ -152,7 +152,7 @@ def get_total(project: VideoProject):
 
     for dataset in project.datasets:
         dataset: VideoDataset
-        with tqdm(total=len(dataset.items()), desc=f"Getting total frames for dataset: '{dataset.name}'") as pbar:
+        with tqdm(total=len(dataset), desc=f"Getting total frames for dataset: '{dataset.name}'") as pbar:
             for video_name, video_path, _ in dataset.items():
                 frames_count = read_or_redownload_video(dataset, video_name, video_path)
                 if frames_count is None:
