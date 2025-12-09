@@ -36,6 +36,9 @@ dotenv.load_dotenv("local.env")
 
 api = sly.Api()
 
+# Limit the number of concurrent requests
+api.set_semaphore_size(3)
+
 
 def create_model_meta(class_names) -> ProjectMeta:
     tag_metas = [sly.TagMeta(class_name, sly.TagValueType.ANY_NUMBER) for class_name in class_names]
